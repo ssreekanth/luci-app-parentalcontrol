@@ -100,6 +100,9 @@ var CSS = '\
 .pc-btn-arrow { padding:1px 4px; font-size:10px; line-height:1; min-width:20px; text-align:center; border:1px solid rgba(255,255,255,0.1); border-radius:2px; background:rgba(255,255,255,0.04); cursor:pointer; opacity:0.4; }\
 .pc-btn-arrow:hover { opacity:0.8; background:rgba(255,255,255,0.1); }\
 .pc-btn-arrow[disabled] { opacity:0.1; cursor:default; pointer-events:none; }\
+.pc-stats { font-size:12px; line-height:1.5; }\
+.pc-stats-packets { font-weight:600; }\
+.pc-stats-bytes { opacity:0.5; }\
 ';
 
 // --- Toast ---
@@ -132,6 +135,20 @@ function formatDuration(seconds) {
 	var m = Math.floor((seconds % 3600) / 60);
 	if (h > 0) return h + 'h ' + m + 'm';
 	return m + 'm';
+}
+
+function formatBytes(bytes) {
+	if (bytes === 0) return '0 B';
+	var units = ['B', 'KB', 'MB', 'GB'];
+	var i = 0;
+	while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++; }
+	return (i === 0 ? bytes : bytes.toFixed(1)) + ' ' + units[i];
+}
+
+function formatPackets(packets) {
+	if (packets >= 1000000) return (packets / 1000000).toFixed(1) + 'M';
+	if (packets >= 1000) return (packets / 1000).toFixed(1) + 'K';
+	return packets.toString();
 }
 
 function compactDays(dayList) {
@@ -353,6 +370,7 @@ function renderTable(container, rules, globalEnabled) {
 		E('th', {}, 'Status'),
 		E('th', { 'style': 'text-align:center;width:60px;' }, 'Enabled'),
 		E('th', { 'style': 'width:150px;' }, 'Override'),
+		E('th', { 'style': 'width:100px;' }, 'Blocked'),
 		E('th', { 'style': 'width:120px;' }, 'Actions')
 	]));
 
@@ -504,6 +522,21 @@ function renderTable(container, rules, globalEnabled) {
 		}
 		overrideCell.appendChild(oc);
 		row.appendChild(overrideCell);
+
+		// Stats
+		var statsCell = E('td', {});
+		var packets = rule.blocked_packets || 0;
+		var bytes = rule.blocked_bytes || 0;
+		if (packets > 0 || bytes > 0) {
+			statsCell.appendChild(E('div', { 'class': 'pc-stats' }, [
+				E('span', { 'class': 'pc-stats-packets' }, formatPackets(packets) + ' pkts'),
+				E('br'),
+				E('span', { 'class': 'pc-stats-bytes' }, formatBytes(bytes))
+			]));
+		} else {
+			statsCell.appendChild(E('span', { 'style': 'opacity:0.3;font-size:12px;' }, '—'));
+		}
+		row.appendChild(statsCell);
 
 		// Actions
 		var actions = E('td', {});

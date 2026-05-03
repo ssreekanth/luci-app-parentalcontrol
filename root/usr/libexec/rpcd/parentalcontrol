@@ -15,6 +15,12 @@ handle_get_status() {
 	config_get global_enabled global enabled '0'
 	now=$(date +%s)
 
+	# Parse nftables counters per MAC (aggregate across split rules)
+	local nft_stats=""
+	nft_stats=$(nft list table inet parentalcontrol 2>/dev/null | \
+		grep "counter packets" | \
+		sed -n 's/.*ether saddr \([^ ]*\).*counter packets \([0-9]*\) bytes \([0-9]*\).*/\1 \2 \3/p')
+
 	json_init
 	json_add_boolean "global_enabled" "$global_enabled"
 	json_add_array "rules"
@@ -49,6 +55,22 @@ handle_get_status() {
 		}
 		config_list_foreach "$section" schedule _collect_schedule
 
+		# Aggregate counters for this MAC
+		local total_packets=0 total_bytes=0
+		local mac_lower
+		mac_lower=$(echo "$mac" | tr 'A-Z' 'a-z')
+		if [ -n "$nft_stats" ]; then
+			echo "$nft_stats" | while read -r _mac _pkts _byts; do
+				if [ "$_mac" = "$mac_lower" ]; then
+					total_packets=$((total_packets + _pkts))
+					total_bytes=$((total_bytes + _byts))
+				fi
+			done
+			# Subshell workaround: re-aggregate outside pipe
+			total_packets=$(echo "$nft_stats" | awk -v m="$mac_lower" '$1==m {s+=$2} END {print s+0}')
+			total_bytes=$(echo "$nft_stats" | awk -v m="$mac_lower" '$1==m {s+=$3} END {print s+0}')
+		fi
+
 		json_add_object ""
 		json_add_string "section" "$section"
 		json_add_string "name" "$name"
@@ -57,6 +79,8 @@ handle_get_status() {
 		json_add_string "status" "$status"
 		json_add_int "override_remaining" "$override_remaining"
 		json_add_string "schedules" "$schedules"
+		json_add_int "blocked_packets" "$total_packets"
+		json_add_int "blocked_bytes" "$total_bytes"
 		json_close_object
 	}
 

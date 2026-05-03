@@ -16,6 +16,7 @@ Time-based parental control for OpenWrt with per-device scheduling, temporary ov
 - **Compact day display** — shows "Mon-Fri" instead of listing each day, auto-detects ranges
 - **Rule reordering** — drag-and-drop rows or use ▲/▼ arrow buttons to control priority
 - **Toast notifications** — actions update the UI in-place with brief status toasts, no page reloads
+- **Blocked traffic stats** — live packet and byte counters per rule from nftables, auto-refreshing
 - **nftables-based** — uses the `meta hour` and `meta day` matchers in the forward chain for efficient kernel-level blocking
 
 ## Architecture
@@ -139,7 +140,7 @@ The rpcd plugin (`/usr/libexec/rpcd/parentalcontrol`) exposes these ubus methods
 
 | Method | Params | Description |
 |--------|--------|-------------|
-| `get_status` | — | Returns global state and all rules with current status |
+| `get_status` | — | Returns global state, rules with status, and live nftables counters |
 | `list_devices` | — | Returns devices from DHCP leases + ARP table |
 | `toggle_global` | `enabled` | Enable/disable all parental controls |
 | `toggle_rule` | `section`, `enabled` | Enable/disable a specific rule |
@@ -166,6 +167,7 @@ status badges every 30 seconds via LuCI's `poll` module.
 - **Status** — Blocked (red), Paused (orange), or Inactive (gray) badge
 - **Enabled** — checkbox toggle per rule
 - **Override** — pause duration dropdown (when blocked) or resume button (when paused)
+- **Blocked** — live packet count and byte total from nftables counters (auto-refreshes)
 - **Actions** — Edit (opens modal) and Delete
 
 All actions update the table in-place with toast notifications — no full page reloads.
@@ -230,4 +232,3 @@ rm -f /tmp/luci-indexcache* /tmp/luci-modulecache/*
 ## Future Improvements
 
 - Bulk enable/disable/delete
-- Usage statistics (blocked packet counts per rule)
