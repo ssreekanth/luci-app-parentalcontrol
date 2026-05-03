@@ -161,23 +161,32 @@ exclusively via ubus RPC calls — no direct UCI manipulation from the browser. 
 status badges every 30 seconds via LuCI's `poll` module.
 
 **Table columns:**
-- **Reorder** — drag handle (⠿) for drag-and-drop, plus ▲/▼ buttons as fallback
+- **Reorder** — drag handle (⠿) for drag-and-drop (desktop + touch), plus ▲/▼ buttons as fallback
 - **Device** — name + MAC address
 - **Schedule** — each schedule on its own line, with compact day ranges (e.g., "Mon-Fri 22:00-07:00")
 - **Status** — Blocked (red), Paused (orange), or Inactive (gray) badge
-- **Enabled** — checkbox toggle per rule
-- **Override** — pause duration dropdown (when blocked) or resume button (when paused)
 - **Blocked** — live packet count and byte total from nftables counters (auto-refreshes)
+- **Enabled** — checkbox toggle per rule
+- **Override** — pause duration dropdown (when blocked) or "Paused Xm" + Resume button (when paused)
 - **Actions** — Edit (opens modal) and Delete
 
 All actions update the table in-place with toast notifications — no full page reloads.
 
 **Add/Edit modals:**
-- Centered popup dialog with backdrop overlay
+- Blocking modal dialog — prevents background scrolling on both desktop and mobile
+- Inherits LuCI theme background color
 - Day-of-week toggle buttons (highlight blue when active)
 - Multiple schedule blocks with "Schedule 1", "Schedule 2" headers
 - "+ Add Schedule" to add more blocks, "Remove" to delete a block
 - Device picker dropdown with manual MAC entry fallback (add only)
+- Responsive layout — form elements stack vertically on mobile
+
+**Responsive design:**
+- Uses LuCI's div-based table system (`.table`, `.tr`, `.td` classes with `data-title` attributes)
+- On mobile (`max-device-width: 600px`), table rows convert to card layout automatically via the
+  LuCI bootstrap theme
+- Touch drag-and-drop on mobile via the grip handle (`touchstart`/`touchmove`/`touchend`)
+- Modal, forms, and action buttons adapt to narrow screens
 
 ## Installation (Direct Copy)
 

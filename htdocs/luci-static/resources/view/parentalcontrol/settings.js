@@ -23,13 +23,9 @@ var CSS = '\
 .pc-header { display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid rgba(255,255,255,0.08); border-radius:6px; margin-bottom:20px; }\
 .pc-header-label { font-weight:600; font-size:15px; }\
 .pc-header-status { font-size:13px; font-weight:600; }\
-.pc-table { width:100%; border-collapse:collapse; margin-bottom:16px; }\
-.pc-table th { text-align:left; padding:10px 12px; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid rgba(255,255,255,0.1); opacity:0.6; }\
-.pc-table td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.05); vertical-align:middle; }\
-.pc-table tr:hover td { background:rgba(255,255,255,0.02); }\
 .pc-mac { font-family:monospace; font-size:12px; opacity:0.5; }\
 .pc-sched-line { display:block; font-size:13px; line-height:1.6; }\
-.pc-badge { display:inline-block; padding:3px 10px; border-radius:12px; color:#fff; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; }\
+.pc-badge { display:inline-block; padding:3px 10px; border-radius:12px; color:#fff; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; white-space:nowrap; }\
 .pc-badge-blocked { background:#c62828; }\
 .pc-badge-override { background:#e65100; }\
 .pc-badge-inactive { background:#546e7a; }\
@@ -45,12 +41,10 @@ var CSS = '\
 .pc-btn-success { border-color:#2e7d32; color:#66bb6a; }\
 .pc-btn-success:hover { background:#2e7d32; color:#fff; }\
 .pc-btn-lg { padding:8px 24px; font-size:14px; }\
-.pc-btn-icon { padding:4px 6px; font-size:14px; line-height:1; min-width:28px; text-align:center; }\
-.pc-btn-icon[disabled] { opacity:0.2; cursor:default; pointer-events:none; }\
 .pc-select { padding:4px 8px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; background:rgba(255,255,255,0.06); font-size:12px; cursor:pointer; }\
 .pc-checkbox { width:18px; height:18px; cursor:pointer; accent-color:#42a5f5; }\
-.pc-override-cell { display:flex; flex-direction:column; gap:4px; align-items:flex-start; }\
-.pc-override-info { font-size:11px; color:#ff9800; font-weight:600; }\
+.pc-override-cell { display:flex; flex-direction:row; gap:6px; align-items:center; flex-wrap:wrap; }\
+.pc-override-info { font-size:13px; color:#ff9800; font-weight:600; }\
 .pc-section-title { font-size:16px; font-weight:600; margin:20px 0 10px; }\
 \
 .pc-toast { position:fixed; bottom:24px; right:24px; padding:10px 20px; border-radius:6px; color:#fff; font-size:13px; font-weight:500; z-index:20000; opacity:0; transform:translateY(10px); transition:all 0.3s ease; pointer-events:none; }\
@@ -59,8 +53,9 @@ var CSS = '\
 .pc-toast-error { background:#c62828; }\
 .pc-toast-info { background:#1565c0; }\
 \
-.pc-modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10000; display:flex; align-items:center; justify-content:center; }\
-.pc-modal { background:#1e1e2e; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:0; width:560px; max-width:90vw; max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.5); }\
+.pc-modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10000; display:flex; align-items:center; justify-content:center; overflow:hidden; }\
+body.pc-modal-open { overflow:hidden !important; }\
+.pc-modal { background:var(--background-color-high, #2d2d2d); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:0; width:560px; max-width:90vw; max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.5); }\
 .pc-modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); }\
 .pc-modal-title { font-size:16px; font-weight:600; }\
 .pc-modal-close { background:none; border:none; font-size:22px; cursor:pointer; opacity:0.5; padding:0 4px; line-height:1; }\
@@ -72,9 +67,9 @@ var CSS = '\
 .pc-form-label { display:block; font-weight:600; font-size:13px; opacity:0.6; margin-bottom:5px; }\
 .pc-form-input { padding:6px 10px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; background:rgba(255,255,255,0.06); font-size:13px; width:100%; box-sizing:border-box; }\
 .pc-form-input-inline { width:auto; }\
-.pc-device-row { display:flex; gap:10px; align-items:center; }\
-.pc-device-row select { flex:1; }\
-.pc-device-row input { width:160px; }\
+.pc-device-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }\
+.pc-device-row select { flex:1 1 250px; min-width:0; }\
+.pc-device-row input { flex:0 0 160px; }\
 \
 .pc-sched-block { padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:4px; margin-bottom:8px; }\
 .pc-sched-block-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }\
@@ -92,10 +87,10 @@ var CSS = '\
 .pc-drag-handle { cursor:grab; opacity:0.4; font-size:16px; user-select:none; display:flex; flex-direction:column; align-items:center; gap:2px; }\
 .pc-drag-handle:hover { opacity:0.8; }\
 .pc-drag-handle:active { cursor:grabbing; }\
-.pc-table tr[draggable="true"]:hover .pc-drag-handle { opacity:0.7; }\
-.pc-table tr.pc-drag-over td { box-shadow:inset 0 2px 0 0 #42a5f5; }\
-.pc-table tr.pc-drag-over-below td { box-shadow:inset 0 -2px 0 0 #42a5f5; }\
-.pc-table tr.pc-dragging { opacity:0.3; }\
+.pc-table .tr[draggable="true"]:hover .pc-drag-handle { opacity:0.7; }\
+.pc-table .tr.pc-drag-over { border-top:3px solid #42a5f5 !important; margin-top:-1px; }\
+.pc-table .tr.pc-drag-over-below { border-bottom:3px solid #42a5f5 !important; margin-bottom:-1px; }\
+.pc-table .tr.pc-dragging { opacity:0.3; }\
 .pc-reorder-cell { display:flex; flex-direction:column; align-items:center; gap:2px; }\
 .pc-btn-arrow { padding:1px 4px; font-size:10px; line-height:1; min-width:20px; text-align:center; border:1px solid rgba(255,255,255,0.1); border-radius:2px; background:rgba(255,255,255,0.04); cursor:pointer; opacity:0.4; }\
 .pc-btn-arrow:hover { opacity:0.8; background:rgba(255,255,255,0.1); }\
@@ -103,6 +98,35 @@ var CSS = '\
 .pc-stats { font-size:12px; line-height:1.5; }\
 .pc-stats-packets { font-weight:600; }\
 .pc-stats-bytes { opacity:0.5; }\
+\
+@media screen and (max-device-width: 600px) {\
+  .pc-header { flex-wrap:wrap; gap:8px; padding:10px 12px; }\
+  .pc-modal { width:95vw; max-height:90vh; }\
+  .pc-modal-body { padding:14px; }\
+  .pc-modal-header { padding:12px 14px; }\
+  .pc-modal-footer { padding:12px 14px; }\
+  .pc-modal-title { font-size:14px; }\
+  .pc-device-row { flex-direction:column; align-items:stretch; }\
+  .pc-device-row select { flex:1 1 auto !important; width:100%; }\
+  .pc-device-row input { flex:1 1 auto !important; width:100% !important; }\
+  .pc-time-row { flex-wrap:wrap; }\
+  .pc-time-input { width:100px; }\
+  .pc-toast { bottom:12px; right:12px; left:12px; text-align:center; }\
+  .pc-table .tr .td.pc-reorder-td { flex:0 0 30px !important; display:flex !important; align-items:center; justify-content:center; }\
+  .pc-table .tr .td.pc-reorder-td .pc-btn-arrow { display:none; }\
+  .pc-drag-handle { font-size:20px; touch-action:none; }\
+  .pc-table .tr { padding:4px 6px; margin-bottom:4px; }\
+  .pc-table .tr .td[data-title=\"Device\"] { flex:1 1 calc(100% - 40px); }\
+  .pc-table .tr .td[data-title=\"Schedule\"] { flex:1 1 50%; }\
+  .pc-table .tr .td[data-title=\"Status\"] { flex:1 1 50%; }\
+  .pc-table .tr .td[data-title=\"Blocked\"]:not(.pc-stats-empty) { flex:1 1 100%; }\
+  .pc-table .tr .td[data-title=\"Enabled\"] { flex:1 1 50%; text-align:left !important; }\
+  .pc-table .tr .td[data-title=\"Override\"] { flex:1 1 50%; }\
+  .pc-table .tr .td[data-title=\"Blocked\"].pc-stats-empty { display:none; }\
+  .pc-table .tr .td.cbi-section-actions { border-top:none !important; }\
+  .pc-actions { justify-content:stretch; gap:8px; }\
+  .pc-actions .pc-btn { flex:1; text-align:center; padding:8px 12px; }\
+}\
 ';
 
 // --- Toast ---
@@ -133,7 +157,8 @@ function formatDuration(seconds) {
 	if (seconds <= 0) return '';
 	var h = Math.floor(seconds / 3600);
 	var m = Math.floor((seconds % 3600) / 60);
-	if (h > 0) return h + 'h ' + m + 'm';
+	if (h > 0 && m > 0) return h + 'h ' + m + 'm';
+	if (h > 0) return h + 'h';
 	return m + 'm';
 }
 
@@ -297,8 +322,18 @@ function collectSchedules(container, prefix) {
 function showModal(title, contentFn, footerFn) {
 	var overlay = E('div', { 'class': 'pc-modal-overlay' });
 	var modal = E('div', { 'class': 'pc-modal' });
-	var closeModal = function() { overlay.remove(); };
-	overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeModal(); });
+
+	document.body.classList.add('pc-modal-open');
+
+	var closeModal = function() {
+		document.body.classList.remove('pc-modal-open');
+		overlay.remove();
+	};
+
+	overlay.addEventListener('wheel', function(ev) { ev.stopPropagation(); }, { passive: false });
+	overlay.addEventListener('touchmove', function(ev) {
+		if (!modal.contains(ev.target)) ev.preventDefault();
+	}, { passive: false });
 
 	modal.appendChild(E('div', { 'class': 'pc-modal-header' }, [
 		E('span', { 'class': 'pc-modal-title' }, title),
@@ -362,22 +397,22 @@ function renderTable(container, rules, globalEnabled) {
 		return;
 	}
 
-	var table = E('table', { 'class': 'pc-table' });
-	table.appendChild(E('tr', {}, [
-		E('th', { 'style': 'width:30px;' }, ''),
-		E('th', {}, 'Device'),
-		E('th', {}, 'Schedule'),
-		E('th', {}, 'Status'),
-		E('th', { 'style': 'text-align:center;width:60px;' }, 'Enabled'),
-		E('th', { 'style': 'width:150px;' }, 'Override'),
-		E('th', { 'style': 'width:100px;' }, 'Blocked'),
-		E('th', { 'style': 'width:120px;' }, 'Actions')
+	var table = E('div', { 'class': 'table cbi-section-table pc-table' });
+	table.appendChild(E('div', { 'class': 'tr table-titles' }, [
+		E('div', { 'class': 'th', 'style': 'width:30px;' }, ''),
+		E('div', { 'class': 'th' }, 'Device'),
+		E('div', { 'class': 'th' }, 'Schedule'),
+		E('div', { 'class': 'th', 'style': 'width:120px;' }, 'Status'),
+		E('div', { 'class': 'th', 'style': 'width:100px;' }, 'Blocked'),
+		E('div', { 'class': 'th', 'style': 'text-align:center;width:60px;' }, 'Enabled'),
+		E('div', { 'class': 'th', 'style': 'width:200px;' }, 'Override'),
+		E('div', { 'class': 'th cbi-section-actions' }, '')
 	]));
 
 	var dragState = { dragIdx: -1 };
 
 	rules.forEach(function(rule, ruleIdx) {
-		var row = E('tr', { 'draggable': 'true', 'data-rule-idx': ruleIdx, 'data-rule-section': rule.section });
+		var row = E('div', { 'class': 'tr', 'draggable': 'true', 'data-rule-idx': ruleIdx, 'data-rule-section': rule.section });
 
 		row.addEventListener('dragstart', function(ev) {
 			dragState.dragIdx = ruleIdx;
@@ -421,8 +456,8 @@ function renderTable(container, rules, globalEnabled) {
 			});
 		});
 
-		// Reorder cell: drag handle + small arrow buttons
-		var reorderCell = E('td', { 'style': 'padding:4px;' });
+		// Reorder cell
+		var reorderCell = E('div', { 'class': 'td pc-reorder-td', 'style': 'padding:4px;flex:0 0 30px;' });
 		var cellContent = E('div', { 'class': 'pc-reorder-cell' });
 		cellContent.appendChild(E('button', {
 			'class': 'pc-btn-arrow', 'title': 'Move up',
@@ -434,7 +469,60 @@ function renderTable(container, rules, globalEnabled) {
 				});
 			}
 		}, '▲'));
-		cellContent.appendChild(E('span', { 'class': 'pc-drag-handle', 'title': 'Drag to reorder' }, '⠿'));
+		var dragHandle = E('span', { 'class': 'pc-drag-handle', 'title': 'Drag to reorder' }, '⠿');
+
+		// Touch drag-and-drop for mobile
+		(function(handle, srcIdx, srcRule) {
+			var touchTarget = null;
+
+			handle.addEventListener('touchstart', function(ev) {
+				ev.preventDefault();
+				dragState.dragIdx = srcIdx;
+				row.classList.add('pc-dragging');
+			}, { passive: false });
+
+			handle.addEventListener('touchmove', function(ev) {
+				ev.preventDefault();
+				var touch = ev.touches[0];
+				var el = document.elementFromPoint(touch.clientX, touch.clientY);
+				if (!el) return;
+
+				var targetRow = el.closest('.tr[data-rule-idx]');
+				table.querySelectorAll('.pc-drag-over, .pc-drag-over-below').forEach(function(r) {
+					r.classList.remove('pc-drag-over', 'pc-drag-over-below');
+				});
+
+				if (targetRow && targetRow !== row) {
+					var targetIdx = parseInt(targetRow.getAttribute('data-rule-idx'));
+					touchTarget = targetIdx;
+					if (srcIdx < targetIdx) {
+						targetRow.classList.add('pc-drag-over-below');
+					} else {
+						targetRow.classList.add('pc-drag-over');
+					}
+				} else {
+					touchTarget = null;
+				}
+			}, { passive: false });
+
+			handle.addEventListener('touchend', function() {
+				row.classList.remove('pc-dragging');
+				table.querySelectorAll('.pc-drag-over, .pc-drag-over-below').forEach(function(r) {
+					r.classList.remove('pc-drag-over', 'pc-drag-over-below');
+				});
+				dragState.dragIdx = -1;
+
+				if (touchTarget !== null && touchTarget !== srcIdx) {
+					callReorderRule(srcRule.section, touchTarget).then(function() {
+						showToast('Moved "' + srcRule.name + '"');
+						refreshView();
+					});
+				}
+				touchTarget = null;
+			});
+		})(dragHandle, ruleIdx, rule);
+
+		cellContent.appendChild(dragHandle);
 		cellContent.appendChild(E('button', {
 			'class': 'pc-btn-arrow', 'title': 'Move down',
 			'disabled': ruleIdx === rules.length - 1 ? '' : null,
@@ -449,23 +537,38 @@ function renderTable(container, rules, globalEnabled) {
 		row.appendChild(reorderCell);
 
 		// Device
-		row.appendChild(E('td', {}, [
+		row.appendChild(E('div', { 'class': 'td', 'data-title': 'Device' }, [
 			E('div', { 'style': 'font-weight:600;' }, rule.name || '-'),
 			E('div', { 'class': 'pc-mac' }, rule.mac || '')
 		]));
 
 		// Schedule
-		var schedCell = E('td', {});
+		var schedCell = E('div', { 'class': 'td', 'data-title': 'Schedule' });
 		formatScheduleLines(rule.schedules).forEach(function(line) {
 			schedCell.appendChild(E('span', { 'class': 'pc-sched-line' }, line));
 		});
 		row.appendChild(schedCell);
 
 		// Status
-		row.appendChild(E('td', {}, [statusBadge(rule.status, rule.override_remaining)]));
+		row.appendChild(E('div', { 'class': 'td', 'data-title': 'Status' }, [statusBadge(rule.status, rule.override_remaining)]));
+
+		// Blocked stats
+		var packets = rule.blocked_packets || 0;
+		var bytes = rule.blocked_bytes || 0;
+		var statsCell = E('div', { 'class': 'td' + (packets === 0 && bytes === 0 ? ' pc-stats-empty' : ''), 'data-title': 'Blocked' });
+		if (packets > 0 || bytes > 0) {
+			statsCell.appendChild(E('div', { 'class': 'pc-stats' }, [
+				E('span', { 'class': 'pc-stats-packets' }, formatPackets(packets) + ' pkts'),
+				E('br'),
+				E('span', { 'class': 'pc-stats-bytes' }, formatBytes(bytes))
+			]));
+		} else {
+			statsCell.appendChild(E('span', { 'style': 'opacity:0.3;font-size:12px;' }, '—'));
+		}
+		row.appendChild(statsCell);
 
 		// Enabled
-		var enableCell = E('td', { 'style': 'text-align:center;' });
+		var enableCell = E('div', { 'class': 'td', 'data-title': 'Enabled', 'style': 'text-align:center;' });
 		enableCell.appendChild(E('input', {
 			'type': 'checkbox', 'class': 'pc-checkbox',
 			'checked': rule.enabled ? '' : null,
@@ -482,7 +585,7 @@ function renderTable(container, rules, globalEnabled) {
 		row.appendChild(enableCell);
 
 		// Override
-		var overrideCell = E('td', {});
+		var overrideCell = E('div', { 'class': 'td', 'data-title': 'Override' });
 		var oc = E('div', { 'class': 'pc-override-cell' });
 		if (rule.enabled && rule.status === 'active') {
 			oc.appendChild(E('select', {
@@ -507,7 +610,7 @@ function renderTable(container, rules, globalEnabled) {
 		} else if (rule.status === 'override') {
 			oc.appendChild(E('span', { 'class': 'pc-override-info' }, 'Paused ' + formatDuration(rule.override_remaining)));
 			oc.appendChild(E('button', {
-				'class': 'pc-btn pc-btn-warn', 'style': 'padding:2px 8px;font-size:11px;',
+				'class': 'pc-btn pc-btn-warn',
 				'click': (function(r) {
 					return function() {
 						callCancelOverride(r.section).then(function() {
@@ -523,23 +626,8 @@ function renderTable(container, rules, globalEnabled) {
 		overrideCell.appendChild(oc);
 		row.appendChild(overrideCell);
 
-		// Stats
-		var statsCell = E('td', {});
-		var packets = rule.blocked_packets || 0;
-		var bytes = rule.blocked_bytes || 0;
-		if (packets > 0 || bytes > 0) {
-			statsCell.appendChild(E('div', { 'class': 'pc-stats' }, [
-				E('span', { 'class': 'pc-stats-packets' }, formatPackets(packets) + ' pkts'),
-				E('br'),
-				E('span', { 'class': 'pc-stats-bytes' }, formatBytes(bytes))
-			]));
-		} else {
-			statsCell.appendChild(E('span', { 'style': 'opacity:0.3;font-size:12px;' }, '—'));
-		}
-		row.appendChild(statsCell);
-
 		// Actions
-		var actions = E('td', {});
+		var actions = E('div', { 'class': 'td cbi-section-actions' });
 		var ar = E('div', { 'class': 'pc-actions' });
 		ar.appendChild(E('button', {
 			'class': 'pc-btn pc-btn-primary',
