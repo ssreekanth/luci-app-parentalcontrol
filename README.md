@@ -14,7 +14,7 @@ Time-based parental control for OpenWrt with per-device scheduling, temporary ov
 - **Device picker** — auto-populated dropdown from DHCP leases and ARP table
 - **Modal dialogs** — add and edit forms open in clean popup modals
 - **Compact day display** — shows "Mon-Fri" instead of listing each day, auto-detects ranges
-- **Rule reordering** — move rules up/down with arrow buttons to control priority
+- **Rule reordering** — drag-and-drop rows or use ▲/▼ arrow buttons to control priority
 - **Toast notifications** — actions update the UI in-place with brief status toasts, no page reloads
 - **nftables-based** — uses the `meta hour` and `meta day` matchers in the forward chain for efficient kernel-level blocking
 
@@ -147,7 +147,8 @@ The rpcd plugin (`/usr/libexec/rpcd/parentalcontrol`) exposes these ubus methods
 | `cancel_override` | `section` | Cancel an active override |
 | `add_rule` | `name`, `mac`, `schedules`, `enabled` | Create a new rule |
 | `update_rule` | `section`, `name`, `schedules`, `enabled` | Modify an existing rule |
-| `move_rule` | `section`, `direction` | Reorder a rule (`direction`: "up" or "down") |
+| `move_rule` | `section`, `direction` | Move a rule one position (`direction`: "up" or "down") |
+| `reorder_rule` | `section`, `position` | Move a rule to a specific 0-based position (used by drag-and-drop) |
 | `delete_rule` | `section` | Remove a rule |
 
 Schedules are passed as pipe-separated strings: `"mon,tue,wed 22:00-07:00|sat,sun 23:00-08:00"`
@@ -159,7 +160,7 @@ exclusively via ubus RPC calls — no direct UCI manipulation from the browser. 
 status badges every 30 seconds via LuCI's `poll` module.
 
 **Table columns:**
-- **Reorder** — ▲/▼ buttons to move rules up/down (disabled at boundaries)
+- **Reorder** — drag handle (⠿) for drag-and-drop, plus ▲/▼ buttons as fallback
 - **Device** — name + MAC address
 - **Schedule** — each schedule on its own line, with compact day ranges (e.g., "Mon-Fri 22:00-07:00")
 - **Status** — Blocked (red), Paused (orange), or Inactive (gray) badge
@@ -229,5 +230,4 @@ rm -f /tmp/luci-indexcache* /tmp/luci-modulecache/*
 ## Future Improvements
 
 - Bulk enable/disable/delete
-- Drag-and-drop reordering (currently uses up/down buttons)
 - Usage statistics (blocked packet counts per rule)

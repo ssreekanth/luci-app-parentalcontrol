@@ -267,6 +267,35 @@ handle_move_rule() {
 	fi
 }
 
+handle_reorder_rule() {
+	local input reorder_section position
+	read -r input
+	json_load "$input"
+	json_get_var reorder_section section
+	json_get_var position position
+
+	config_load "$CONFIG_NAME"
+
+	local rule_count=0
+	_count_rules() { rule_count=$((rule_count + 1)); }
+	config_foreach _count_rules rule
+
+	if [ "$position" -ge 0 ] && [ "$position" -lt "$rule_count" ]; then
+		local new_abs=$((position + 1))
+		uci reorder "$CONFIG_NAME.$reorder_section=$new_abs"
+		uci commit "$CONFIG_NAME"
+		$SCRIPT apply
+
+		json_init
+		json_add_boolean "success" 1
+		json_dump
+	else
+		json_init
+		json_add_boolean "success" 0
+		json_dump
+	fi
+}
+
 handle_delete_rule() {
 	local input section
 	read -r input
@@ -293,6 +322,7 @@ case "$1" in
 		echo '"add_rule":{"name":"str","mac":"str","schedules":"str","enabled":true},'
 		echo '"cancel_override":{"section":"str"},'
 		echo '"move_rule":{"section":"str","direction":"str"},'
+		echo '"reorder_rule":{"section":"str","position":0},'
 		echo '"delete_rule":{"section":"str"},'
 		echo '"update_rule":{"section":"str","name":"str","schedules":"str","enabled":true}'
 		echo '}'
@@ -308,6 +338,7 @@ case "$1" in
 			add_rule) handle_add_rule ;;
 			update_rule) handle_update_rule ;;
 			move_rule) handle_move_rule ;;
+			reorder_rule) handle_reorder_rule ;;
 			delete_rule) handle_delete_rule ;;
 		esac
 		;;

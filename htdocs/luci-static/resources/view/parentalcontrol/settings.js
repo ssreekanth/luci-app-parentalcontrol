@@ -14,6 +14,7 @@ var callAddRule = rpc.declare({ object: 'parentalcontrol', method: 'add_rule', p
 var callUpdateRule = rpc.declare({ object: 'parentalcontrol', method: 'update_rule', params: ['section', 'name', 'schedules', 'enabled'] });
 var callDeleteRule = rpc.declare({ object: 'parentalcontrol', method: 'delete_rule', params: ['section'] });
 var callMoveRule = rpc.declare({ object: 'parentalcontrol', method: 'move_rule', params: ['section', 'direction'] });
+var callReorderRule = rpc.declare({ object: 'parentalcontrol', method: 'reorder_rule', params: ['section', 'position'] });
 
 var DAY_NAMES = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 var DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -87,6 +88,18 @@ var CSS = '\
 .pc-time-row { display:flex; align-items:center; gap:8px; margin-top:8px; }\
 .pc-time-label { font-size:12px; opacity:0.5; font-weight:600; }\
 .pc-time-input { width:120px; }\
+\
+.pc-drag-handle { cursor:grab; opacity:0.4; font-size:16px; user-select:none; display:flex; flex-direction:column; align-items:center; gap:2px; }\
+.pc-drag-handle:hover { opacity:0.8; }\
+.pc-drag-handle:active { cursor:grabbing; }\
+.pc-table tr[draggable="true"]:hover .pc-drag-handle { opacity:0.7; }\
+.pc-table tr.pc-drag-over td { box-shadow:inset 0 2px 0 0 #42a5f5; }\
+.pc-table tr.pc-drag-over-below td { box-shadow:inset 0 -2px 0 0 #42a5f5; }\
+.pc-table tr.pc-dragging { opacity:0.3; }\
+.pc-reorder-cell { display:flex; flex-direction:column; align-items:center; gap:2px; }\
+.pc-btn-arrow { padding:1px 4px; font-size:10px; line-height:1; min-width:20px; text-align:center; border:1px solid rgba(255,255,255,0.1); border-radius:2px; background:rgba(255,255,255,0.04); cursor:pointer; opacity:0.4; }\
+.pc-btn-arrow:hover { opacity:0.8; background:rgba(255,255,255,0.1); }\
+.pc-btn-arrow[disabled] { opacity:0.1; cursor:default; pointer-events:none; }\
 ';
 
 // --- Toast ---
@@ -343,14 +356,58 @@ function renderTable(container, rules, globalEnabled) {
 		E('th', { 'style': 'width:120px;' }, 'Actions')
 	]));
 
-	rules.forEach(function(rule, ruleIdx) {
-		var row = E('tr', {});
+	var dragState = { dragIdx: -1 };
 
-		// Reorder buttons
+	rules.forEach(function(rule, ruleIdx) {
+		var row = E('tr', { 'draggable': 'true', 'data-rule-idx': ruleIdx, 'data-rule-section': rule.section });
+
+		row.addEventListener('dragstart', function(ev) {
+			dragState.dragIdx = ruleIdx;
+			row.classList.add('pc-dragging');
+			ev.dataTransfer.effectAllowed = 'move';
+			ev.dataTransfer.setData('text/plain', ruleIdx.toString());
+		});
+		row.addEventListener('dragend', function() {
+			row.classList.remove('pc-dragging');
+			table.querySelectorAll('.pc-drag-over, .pc-drag-over-below').forEach(function(el) {
+				el.classList.remove('pc-drag-over', 'pc-drag-over-below');
+			});
+			dragState.dragIdx = -1;
+		});
+		row.addEventListener('dragover', function(ev) {
+			ev.preventDefault();
+			ev.dataTransfer.dropEffect = 'move';
+			if (dragState.dragIdx === ruleIdx) return;
+			table.querySelectorAll('.pc-drag-over, .pc-drag-over-below').forEach(function(el) {
+				el.classList.remove('pc-drag-over', 'pc-drag-over-below');
+			});
+			if (dragState.dragIdx < ruleIdx) {
+				row.classList.add('pc-drag-over-below');
+			} else {
+				row.classList.add('pc-drag-over');
+			}
+		});
+		row.addEventListener('dragleave', function() {
+			row.classList.remove('pc-drag-over', 'pc-drag-over-below');
+		});
+		row.addEventListener('drop', function(ev) {
+			ev.preventDefault();
+			row.classList.remove('pc-drag-over', 'pc-drag-over-below');
+			var fromIdx = dragState.dragIdx;
+			var toIdx = ruleIdx;
+			if (fromIdx === toIdx || fromIdx < 0) return;
+			var fromRule = rules[fromIdx];
+			callReorderRule(fromRule.section, toIdx).then(function() {
+				showToast('Moved "' + fromRule.name + '"');
+				refreshView();
+			});
+		});
+
+		// Reorder cell: drag handle + small arrow buttons
 		var reorderCell = E('td', { 'style': 'padding:4px;' });
-		var upBtn = E('button', {
-			'class': 'pc-btn pc-btn-icon',
-			'title': 'Move up',
+		var cellContent = E('div', { 'class': 'pc-reorder-cell' });
+		cellContent.appendChild(E('button', {
+			'class': 'pc-btn-arrow', 'title': 'Move up',
 			'disabled': ruleIdx === 0 ? '' : null,
 			'click': function() {
 				callMoveRule(rule.section, 'up').then(function() {
@@ -358,10 +415,10 @@ function renderTable(container, rules, globalEnabled) {
 					refreshView();
 				});
 			}
-		}, '▲');
-		var downBtn = E('button', {
-			'class': 'pc-btn pc-btn-icon',
-			'title': 'Move down',
+		}, '▲'));
+		cellContent.appendChild(E('span', { 'class': 'pc-drag-handle', 'title': 'Drag to reorder' }, '⠿'));
+		cellContent.appendChild(E('button', {
+			'class': 'pc-btn-arrow', 'title': 'Move down',
 			'disabled': ruleIdx === rules.length - 1 ? '' : null,
 			'click': function() {
 				callMoveRule(rule.section, 'down').then(function() {
@@ -369,9 +426,8 @@ function renderTable(container, rules, globalEnabled) {
 					refreshView();
 				});
 			}
-		}, '▼');
-		reorderCell.appendChild(upBtn);
-		reorderCell.appendChild(downBtn);
+		}, '▼'));
+		reorderCell.appendChild(cellContent);
 		row.appendChild(reorderCell);
 
 		// Device
