@@ -54,6 +54,35 @@ generate_rules() {
 		config_list_foreach "$section" schedule _process_schedule "$mac_lower" "$comment"
 	}
 
+	_days_to_nft() {
+		echo "$1" | tr ',' '\n' | while read -r d; do
+			case "$d" in
+				mon|Mon) echo -n "Monday," ;;
+				tue|Tue) echo -n "Tuesday," ;;
+				wed|Wed) echo -n "Wednesday," ;;
+				thu|Thu) echo -n "Thursday," ;;
+				fri|Fri) echo -n "Friday," ;;
+				sat|Sat) echo -n "Saturday," ;;
+				sun|Sun) echo -n "Sunday," ;;
+			esac
+		done | sed 's/,$//'
+	}
+
+	_next_day() {
+		case "$1" in
+			mon) echo "tue" ;; tue) echo "wed" ;; wed) echo "thu" ;;
+			thu) echo "fri" ;; fri) echo "sat" ;; sat) echo "sun" ;; sun) echo "mon" ;;
+		esac
+	}
+
+	_shift_days() {
+		local result="" sep=""
+		echo "$1" | tr ',' '\n' | while read -r d; do
+			printf "%s%s" "$sep" "$(_next_day "$d")"
+			sep=","
+		done
+	}
+
 	_process_schedule() {
 		local schedule="$1"
 		local mac="$2"
@@ -76,28 +105,26 @@ generate_rules() {
 		[ -z "$end_h" ] && end_h=0
 
 		local nft_days
-		nft_days=$(echo "$days" | tr ',' '\n' | while read -r d; do
-			case "$d" in
-				mon|Mon) echo -n "Monday," ;;
-				tue|Tue) echo -n "Tuesday," ;;
-				wed|Wed) echo -n "Wednesday," ;;
-				thu|Thu) echo -n "Thursday," ;;
-				fri|Fri) echo -n "Friday," ;;
-				sat|Sat) echo -n "Saturday," ;;
-				sun|Sun) echo -n "Sunday," ;;
-			esac
-		done | sed 's/,$//')
+		nft_days=$(_days_to_nft "$days")
 
 		local day_match=""
 		if [ -n "$nft_days" ]; then
 			day_match="meta day { $nft_days } "
 		fi
 
-		# nftables meta hour uses local time on OpenWrt — no UTC conversion needed
 		if [ "$start_h" -gt "$end_h" ]; then
+			# Midnight crossing: second half uses next day
+			local next_days next_nft_days next_day_match
+			next_days=$(_shift_days "$days")
+			next_nft_days=$(_days_to_nft "$next_days")
+			next_day_match=""
+			if [ -n "$next_nft_days" ]; then
+				next_day_match="meta day { $next_nft_days } "
+			fi
+
 			rules="$rules
 		${day_match}ether saddr $mac meta hour \"${start_time}\"-\"23:59:59\" counter drop comment \"${comment}\"
-		${day_match}ether saddr $mac meta hour \"00:00\"-\"${end_time}\" counter drop comment \"${comment}\""
+		${next_day_match}ether saddr $mac meta hour \"00:00\"-\"${end_time}\" counter drop comment \"${comment}\""
 		else
 			rules="$rules
 		${day_match}ether saddr $mac meta hour \"${start_time}\"-\"${end_time}\" counter drop comment \"${comment}\""

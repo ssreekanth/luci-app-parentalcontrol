@@ -217,15 +217,10 @@ rm -f /tmp/luci-indexcache* /tmp/luci-modulecache/*
 
 - **APK packaging**: OpenWrt 25.x uses APK v3 (ADB binary format). The `build-apk.sh` script produces
   the older tar+gzip format which is not compatible. Install via direct file copy for now.
-- **Day-of-week on midnight-crossing schedules**: When a schedule like "Fri 22:00-07:00" crosses
-  midnight, the 00:00-07:00 portion should technically match Saturday, not Friday. Currently both
-  halves of a split rule use the same day-of-week filter.
 - **No per-service blocking**: This blocks all traffic from the device. For service-level blocking
   (e.g., only block YouTube), use AdGuardHome's per-client blocked services feature.
 
 ## Future Improvements
-
-- Fix day-of-week adjustment for midnight-crossing schedules
 - Toast notifications instead of full page reloads
 - Rule reordering / drag-and-drop
 - Bulk enable/disable/delete
