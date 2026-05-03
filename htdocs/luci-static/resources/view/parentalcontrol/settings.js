@@ -13,6 +13,7 @@ var callCancelOverride = rpc.declare({ object: 'parentalcontrol', method: 'cance
 var callAddRule = rpc.declare({ object: 'parentalcontrol', method: 'add_rule', params: ['name', 'mac', 'schedules', 'enabled'] });
 var callUpdateRule = rpc.declare({ object: 'parentalcontrol', method: 'update_rule', params: ['section', 'name', 'schedules', 'enabled'] });
 var callDeleteRule = rpc.declare({ object: 'parentalcontrol', method: 'delete_rule', params: ['section'] });
+var callMoveRule = rpc.declare({ object: 'parentalcontrol', method: 'move_rule', params: ['section', 'direction'] });
 
 var DAY_NAMES = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 var DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -31,7 +32,7 @@ var CSS = '\
 .pc-badge-blocked { background:#c62828; }\
 .pc-badge-override { background:#e65100; }\
 .pc-badge-inactive { background:#546e7a; }\
-.pc-actions { display:flex; gap:6px; align-items:center; }\
+.pc-actions { display:flex; gap:4px; align-items:center; }\
 .pc-btn { padding:4px 12px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; background:rgba(255,255,255,0.06); cursor:pointer; font-size:12px; white-space:nowrap; }\
 .pc-btn:hover { background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.25); }\
 .pc-btn-danger { border-color:#c62828; color:#ef5350; }\
@@ -43,11 +44,19 @@ var CSS = '\
 .pc-btn-success { border-color:#2e7d32; color:#66bb6a; }\
 .pc-btn-success:hover { background:#2e7d32; color:#fff; }\
 .pc-btn-lg { padding:8px 24px; font-size:14px; }\
+.pc-btn-icon { padding:4px 6px; font-size:14px; line-height:1; min-width:28px; text-align:center; }\
+.pc-btn-icon[disabled] { opacity:0.2; cursor:default; pointer-events:none; }\
 .pc-select { padding:4px 8px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; background:rgba(255,255,255,0.06); font-size:12px; cursor:pointer; }\
 .pc-checkbox { width:18px; height:18px; cursor:pointer; accent-color:#42a5f5; }\
 .pc-override-cell { display:flex; flex-direction:column; gap:4px; align-items:flex-start; }\
 .pc-override-info { font-size:11px; color:#ff9800; font-weight:600; }\
 .pc-section-title { font-size:16px; font-weight:600; margin:20px 0 10px; }\
+\
+.pc-toast { position:fixed; bottom:24px; right:24px; padding:10px 20px; border-radius:6px; color:#fff; font-size:13px; font-weight:500; z-index:20000; opacity:0; transform:translateY(10px); transition:all 0.3s ease; pointer-events:none; }\
+.pc-toast.show { opacity:1; transform:translateY(0); }\
+.pc-toast-success { background:#2e7d32; }\
+.pc-toast-error { background:#c62828; }\
+.pc-toast-info { background:#1565c0; }\
 \
 .pc-modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10000; display:flex; align-items:center; justify-content:center; }\
 .pc-modal { background:#1e1e2e; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:0; width:560px; max-width:90vw; max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.5); }\
@@ -79,6 +88,30 @@ var CSS = '\
 .pc-time-label { font-size:12px; opacity:0.5; font-weight:600; }\
 .pc-time-input { width:120px; }\
 ';
+
+// --- Toast ---
+
+function showToast(message, type) {
+	type = type || 'success';
+	var existing = document.querySelector('.pc-toast');
+	if (existing) existing.remove();
+
+	var toast = document.createElement('div');
+	toast.className = 'pc-toast pc-toast-' + type;
+	toast.textContent = message;
+	document.body.appendChild(toast);
+
+	requestAnimationFrame(function() {
+		requestAnimationFrame(function() { toast.classList.add('show'); });
+	});
+
+	setTimeout(function() {
+		toast.classList.remove('show');
+		setTimeout(function() { toast.remove(); }, 300);
+	}, 2500);
+}
+
+// --- Helpers ---
 
 function formatDuration(seconds) {
 	if (seconds <= 0) return '';
@@ -135,21 +168,16 @@ function parseSchedules(scheduleStr) {
 	});
 }
 
-// --- Schedule block rendering ---
+// --- Schedule editor ---
 
 function renderScheduleBlock(prefix, idx, sched, showRemove) {
 	var block = E('div', { 'class': 'pc-sched-block', 'data-sched-idx': idx });
-
 	var header = E('div', { 'class': 'pc-sched-block-header' });
 	header.appendChild(E('span', { 'class': 'pc-sched-block-title' }, 'Schedule ' + (idx + 1)));
 	if (showRemove) {
 		header.appendChild(E('button', {
 			'class': 'pc-sched-block-remove',
-			'click': function() {
-				var container = block.parentNode;
-				block.remove();
-				renumberBlocks(container, prefix);
-			}
+			'click': function() { var c = block.parentNode; block.remove(); renumberBlocks(c, prefix); }
 		}, 'Remove'));
 	}
 	block.appendChild(header);
@@ -158,20 +186,12 @@ function renderScheduleBlock(prefix, idx, sched, showRemove) {
 	DAY_NAMES.forEach(function(d, i) {
 		var active = sched.days.indexOf(d) >= 0;
 		var btn = E('span', {
-			'class': 'pc-day-btn' + (active ? ' active' : ''),
-			'data-day': d,
-			'click': function() {
-				btn.classList.toggle('active');
-				hiddenInput.value = btn.classList.contains('active') ? '1' : '';
-			}
+			'class': 'pc-day-btn' + (active ? ' active' : ''), 'data-day': d,
+			'click': function() { btn.classList.toggle('active'); hi.value = btn.classList.contains('active') ? '1' : ''; }
 		}, DAY_LABELS[i]);
-		var hiddenInput = E('input', {
-			'type': 'hidden',
-			'name': prefix + '_day_' + idx + '_' + d,
-			'value': active ? '1' : ''
-		});
+		var hi = E('input', { 'type': 'hidden', 'name': prefix + '_day_' + idx + '_' + d, 'value': active ? '1' : '' });
 		dayRow.appendChild(btn);
-		dayRow.appendChild(hiddenInput);
+		dayRow.appendChild(hi);
 	});
 	block.appendChild(dayRow);
 
@@ -181,7 +201,6 @@ function renderScheduleBlock(prefix, idx, sched, showRemove) {
 		E('span', { 'class': 'pc-time-label' }, 'to'),
 		E('input', { 'type': 'time', 'name': prefix + '_end_' + idx, 'value': sched.end, 'class': 'pc-form-input pc-form-input-inline pc-time-input' })
 	]));
-
 	return block;
 }
 
@@ -191,7 +210,6 @@ function renumberBlocks(container, prefix) {
 		block.setAttribute('data-sched-idx', newIdx);
 		var title = block.querySelector('.pc-sched-block-title');
 		if (title) title.textContent = 'Schedule ' + (newIdx + 1);
-
 		DAY_NAMES.forEach(function(d) {
 			var inp = block.querySelector('[name*="_day_"][name$="_' + d + '"]');
 			if (inp) inp.name = prefix + '_day_' + newIdx + '_' + d;
@@ -200,52 +218,45 @@ function renumberBlocks(container, prefix) {
 		if (s) s.name = prefix + '_start_' + newIdx;
 		var e = block.querySelector('[name*="_end_"]');
 		if (e) e.name = prefix + '_end_' + newIdx;
-
-		var removeBtn = block.querySelector('.pc-sched-block-remove');
-		if (removeBtn) removeBtn.style.display = blocks.length <= 1 ? 'none' : '';
+		var rb = block.querySelector('.pc-sched-block-remove');
+		if (rb) rb.style.display = blocks.length <= 1 ? 'none' : '';
 	});
 }
 
 function renderScheduleEditor(prefix, schedules) {
 	if (!schedules || schedules.length === 0)
 		schedules = [{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], start: '22:00', end: '07:00' }];
-
 	var wrapper = E('div');
-	var blocksDiv = E('div', { 'class': 'pc-sched-blocks' });
-
+	var bd = E('div', { 'class': 'pc-sched-blocks' });
 	schedules.forEach(function(sched, idx) {
-		blocksDiv.appendChild(renderScheduleBlock(prefix, idx, sched, schedules.length > 1));
+		bd.appendChild(renderScheduleBlock(prefix, idx, sched, schedules.length > 1));
 	});
-	wrapper.appendChild(blocksDiv);
-
+	wrapper.appendChild(bd);
 	wrapper.appendChild(E('button', {
-		'class': 'pc-btn pc-btn-primary',
-		'style': 'margin-top:4px;',
+		'class': 'pc-btn pc-btn-primary', 'style': 'margin-top:4px;',
 		'click': function(ev) {
 			ev.preventDefault();
-			var count = blocksDiv.querySelectorAll('.pc-sched-block').length;
-			blocksDiv.appendChild(renderScheduleBlock(prefix, count,
-				{ days: ['sat', 'sun'], start: '22:00', end: '08:00' }, true));
-			renumberBlocks(blocksDiv, prefix);
+			var n = bd.querySelectorAll('.pc-sched-block').length;
+			bd.appendChild(renderScheduleBlock(prefix, n, { days: ['sat', 'sun'], start: '22:00', end: '08:00' }, true));
+			renumberBlocks(bd, prefix);
 		}
 	}, '+ Add Schedule'));
-
 	return wrapper;
 }
 
 function collectSchedules(container, prefix) {
 	var schedules = [], idx = 0;
 	while (true) {
-		var startInput = container.querySelector('[name="' + prefix + '_start_' + idx + '"]');
-		if (!startInput) break;
-		var endInput = container.querySelector('[name="' + prefix + '_end_' + idx + '"]');
+		var si = container.querySelector('[name="' + prefix + '_start_' + idx + '"]');
+		if (!si) break;
+		var ei = container.querySelector('[name="' + prefix + '_end_' + idx + '"]');
 		var days = [];
 		DAY_NAMES.forEach(function(d) {
 			var inp = container.querySelector('[name="' + prefix + '_day_' + idx + '_' + d + '"]');
 			if (inp && inp.value === '1') days.push(d);
 		});
-		if (days.length > 0 && startInput.value && endInput.value)
-			schedules.push(days.join(',') + ' ' + startInput.value + '-' + endInput.value);
+		if (days.length > 0 && si.value && ei.value)
+			schedules.push(days.join(',') + ' ' + si.value + '-' + ei.value);
 		idx++;
 	}
 	return schedules.join('|');
@@ -256,34 +267,215 @@ function collectSchedules(container, prefix) {
 function showModal(title, contentFn, footerFn) {
 	var overlay = E('div', { 'class': 'pc-modal-overlay' });
 	var modal = E('div', { 'class': 'pc-modal' });
-
 	var closeModal = function() { overlay.remove(); };
+	overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeModal(); });
 
-	overlay.addEventListener('click', function(ev) {
-		if (ev.target === overlay) closeModal();
-	});
-
-	var header = E('div', { 'class': 'pc-modal-header' }, [
+	modal.appendChild(E('div', { 'class': 'pc-modal-header' }, [
 		E('span', { 'class': 'pc-modal-title' }, title),
 		E('button', { 'class': 'pc-modal-close', 'click': closeModal }, '×')
-	]);
-	modal.appendChild(header);
-
+	]));
 	var body = E('div', { 'class': 'pc-modal-body' });
 	contentFn(body);
 	modal.appendChild(body);
-
 	var footer = E('div', { 'class': 'pc-modal-footer' });
 	footerFn(footer, body, closeModal);
 	modal.appendChild(footer);
-
 	overlay.appendChild(modal);
 	document.body.appendChild(overlay);
-	return { overlay: overlay, close: closeModal };
+	return { close: closeModal };
 }
 
-// --- Cached devices for modal ---
+// --- Main view ---
+
 var _cachedDevices = [];
+var _tableContainer = null;
+var _globalContainer = null;
+
+function refreshView() {
+	return Promise.all([callGetStatus(), callListDevices()]).then(function(data) {
+		var status = data[0] || {};
+		var deviceData = data[1] || {};
+		if (_globalContainer) renderGlobal(_globalContainer, status.global_enabled);
+		if (_tableContainer) renderTable(_tableContainer, status.rules || [], status.global_enabled);
+		_cachedDevices = (deviceData.devices || []).slice().sort(function(a, b) {
+			var an = a.hostname || '', bn = b.hostname || '';
+			if (an && !bn) return -1;
+			if (!an && bn) return 1;
+			return an.localeCompare(bn);
+		});
+	});
+}
+
+function renderGlobal(container, globalEnabled) {
+	container.innerHTML = '';
+	container.appendChild(E('span', { 'class': 'pc-header-label' }, 'Parental Control:'));
+	container.appendChild(E('button', {
+		'class': globalEnabled ? 'pc-btn pc-btn-danger' : 'pc-btn pc-btn-success',
+		'click': function() {
+			callToggleGlobal(globalEnabled ? 0 : 1).then(function() {
+				showToast(globalEnabled ? 'Parental control disabled' : 'Parental control enabled');
+				refreshView();
+			});
+		}
+	}, globalEnabled ? 'Disable' : 'Enable'));
+	container.appendChild(E('span', {
+		'class': 'pc-header-status',
+		'style': 'color:' + (globalEnabled ? '#66bb6a' : '#888')
+	}, globalEnabled ? 'Active' : 'Disabled'));
+}
+
+function renderTable(container, rules, globalEnabled) {
+	container.innerHTML = '';
+
+	if (rules.length === 0) {
+		container.appendChild(E('p', { 'style': 'opacity:0.5;padding:8px 0;' }, 'No parental control rules configured.'));
+		return;
+	}
+
+	var table = E('table', { 'class': 'pc-table' });
+	table.appendChild(E('tr', {}, [
+		E('th', { 'style': 'width:30px;' }, ''),
+		E('th', {}, 'Device'),
+		E('th', {}, 'Schedule'),
+		E('th', {}, 'Status'),
+		E('th', { 'style': 'text-align:center;width:60px;' }, 'Enabled'),
+		E('th', { 'style': 'width:150px;' }, 'Override'),
+		E('th', { 'style': 'width:120px;' }, 'Actions')
+	]));
+
+	rules.forEach(function(rule, ruleIdx) {
+		var row = E('tr', {});
+
+		// Reorder buttons
+		var reorderCell = E('td', { 'style': 'padding:4px;' });
+		var upBtn = E('button', {
+			'class': 'pc-btn pc-btn-icon',
+			'title': 'Move up',
+			'disabled': ruleIdx === 0 ? '' : null,
+			'click': function() {
+				callMoveRule(rule.section, 'up').then(function() {
+					showToast('Moved "' + rule.name + '" up');
+					refreshView();
+				});
+			}
+		}, '▲');
+		var downBtn = E('button', {
+			'class': 'pc-btn pc-btn-icon',
+			'title': 'Move down',
+			'disabled': ruleIdx === rules.length - 1 ? '' : null,
+			'click': function() {
+				callMoveRule(rule.section, 'down').then(function() {
+					showToast('Moved "' + rule.name + '" down');
+					refreshView();
+				});
+			}
+		}, '▼');
+		reorderCell.appendChild(upBtn);
+		reorderCell.appendChild(downBtn);
+		row.appendChild(reorderCell);
+
+		// Device
+		row.appendChild(E('td', {}, [
+			E('div', { 'style': 'font-weight:600;' }, rule.name || '-'),
+			E('div', { 'class': 'pc-mac' }, rule.mac || '')
+		]));
+
+		// Schedule
+		var schedCell = E('td', {});
+		formatScheduleLines(rule.schedules).forEach(function(line) {
+			schedCell.appendChild(E('span', { 'class': 'pc-sched-line' }, line));
+		});
+		row.appendChild(schedCell);
+
+		// Status
+		row.appendChild(E('td', {}, [statusBadge(rule.status, rule.override_remaining)]));
+
+		// Enabled
+		var enableCell = E('td', { 'style': 'text-align:center;' });
+		enableCell.appendChild(E('input', {
+			'type': 'checkbox', 'class': 'pc-checkbox',
+			'checked': rule.enabled ? '' : null,
+			'change': (function(r) {
+				return function(ev) {
+					var enabling = ev.target.checked;
+					callToggleRule(r.section, enabling ? 1 : 0).then(function() {
+						showToast('"' + r.name + '" ' + (enabling ? 'enabled' : 'disabled'));
+						refreshView();
+					});
+				};
+			})(rule)
+		}));
+		row.appendChild(enableCell);
+
+		// Override
+		var overrideCell = E('td', {});
+		var oc = E('div', { 'class': 'pc-override-cell' });
+		if (rule.enabled && rule.status === 'active') {
+			oc.appendChild(E('select', {
+				'class': 'pc-select',
+				'change': (function(r) {
+					return function(ev) {
+						var m = parseInt(ev.target.value);
+						if (m > 0) {
+							callSetOverride(r.section, m).then(function() {
+								showToast('"' + r.name + '" paused for ' + (m >= 60 ? (m/60) + 'h' : m + 'm'));
+								refreshView();
+							});
+						}
+					};
+				})(rule)
+			}, [
+				E('option', { 'value': '0' }, 'Pause...'),
+				E('option', { 'value': '30' }, '30 min'),
+				E('option', { 'value': '60' }, '1 hour'),
+				E('option', { 'value': '120' }, '2 hours')
+			]));
+		} else if (rule.status === 'override') {
+			oc.appendChild(E('span', { 'class': 'pc-override-info' }, 'Paused ' + formatDuration(rule.override_remaining)));
+			oc.appendChild(E('button', {
+				'class': 'pc-btn pc-btn-warn', 'style': 'padding:2px 8px;font-size:11px;',
+				'click': (function(r) {
+					return function() {
+						callCancelOverride(r.section).then(function() {
+							showToast('"' + r.name + '" blocking resumed');
+							refreshView();
+						});
+					};
+				})(rule)
+			}, 'Resume'));
+		} else {
+			oc.appendChild(E('span', { 'style': 'opacity:0.3;font-size:12px;' }, '—'));
+		}
+		overrideCell.appendChild(oc);
+		row.appendChild(overrideCell);
+
+		// Actions
+		var actions = E('td', {});
+		var ar = E('div', { 'class': 'pc-actions' });
+		ar.appendChild(E('button', {
+			'class': 'pc-btn pc-btn-primary',
+			'click': (function(r) { return function() { openEditModal(r); }; })(rule)
+		}, 'Edit'));
+		ar.appendChild(E('button', {
+			'class': 'pc-btn pc-btn-danger',
+			'click': (function(r) {
+				return function() {
+					if (confirm('Delete rule "' + (r.name || r.mac) + '"?')) {
+						callDeleteRule(r.section).then(function() {
+							showToast('"' + r.name + '" deleted');
+							refreshView();
+						});
+					}
+				};
+			})(rule)
+		}, 'Delete'));
+		actions.appendChild(ar);
+		row.appendChild(actions);
+		table.appendChild(row);
+	});
+
+	container.appendChild(table);
+}
 
 return view.extend({
 	load: function() {
@@ -294,36 +486,23 @@ return view.extend({
 		var status = data[0] || {};
 		var deviceData = data[1] || {};
 		var rules = status.rules || [];
-		var devices = deviceData.devices || [];
 		var globalEnabled = status.global_enabled;
 
-		_cachedDevices = devices.slice().sort(function(a, b) {
-			var aName = a.hostname || '', bName = b.hostname || '';
-			if (aName && !bName) return -1;
-			if (!aName && bName) return 1;
-			return aName.localeCompare(bName);
+		_cachedDevices = (deviceData.devices || []).slice().sort(function(a, b) {
+			var an = a.hostname || '', bn = b.hostname || '';
+			if (an && !bn) return -1;
+			if (!an && bn) return 1;
+			return an.localeCompare(bn);
 		});
 
 		var viewEl = E('div', { 'class': 'cbi-map' });
 		viewEl.appendChild(E('style', {}, CSS));
 		viewEl.appendChild(E('h2', {}, 'Parental Control'));
 
-		// Global toggle
-		var globalSection = E('div', { 'class': 'pc-header' });
-		globalSection.appendChild(E('span', { 'class': 'pc-header-label' }, 'Parental Control:'));
-		globalSection.appendChild(E('button', {
-			'class': globalEnabled ? 'pc-btn pc-btn-danger' : 'pc-btn pc-btn-success',
-			'click': function() {
-				callToggleGlobal(globalEnabled ? 0 : 1).then(function() { window.location.reload(); });
-			}
-		}, globalEnabled ? 'Disable' : 'Enable'));
-		globalSection.appendChild(E('span', {
-			'class': 'pc-header-status',
-			'style': 'color:' + (globalEnabled ? '#66bb6a' : '#888')
-		}, globalEnabled ? 'Active' : 'Disabled'));
-		viewEl.appendChild(globalSection);
+		_globalContainer = E('div', { 'class': 'pc-header' });
+		renderGlobal(_globalContainer, globalEnabled);
+		viewEl.appendChild(_globalContainer);
 
-		// Rules table
 		var titleRow = E('div', { 'style': 'display:flex; align-items:center; justify-content:space-between; margin:20px 0 10px;' });
 		titleRow.appendChild(E('div', { 'class': 'pc-section-title', 'style': 'margin:0;' }, 'Controlled Devices'));
 		titleRow.appendChild(E('button', {
@@ -332,111 +511,11 @@ return view.extend({
 		}, '+ Add Rule'));
 		viewEl.appendChild(titleRow);
 
-		if (rules.length === 0) {
-			viewEl.appendChild(E('p', { 'style': 'opacity:0.5;padding:8px 0;' }, 'No parental control rules configured.'));
-		} else {
-			var table = E('table', { 'class': 'pc-table' });
-			table.appendChild(E('tr', {}, [
-				E('th', {}, 'Device'),
-				E('th', {}, 'Schedule'),
-				E('th', {}, 'Status'),
-				E('th', { 'style': 'text-align:center;width:60px;' }, 'Enabled'),
-				E('th', { 'style': 'width:150px;' }, 'Override'),
-				E('th', { 'style': 'width:120px;' }, 'Actions')
-			]));
+		_tableContainer = E('div');
+		renderTable(_tableContainer, rules, globalEnabled);
+		viewEl.appendChild(_tableContainer);
 
-			rules.forEach(function(rule) {
-				var row = E('tr', {});
-
-				row.appendChild(E('td', {}, [
-					E('div', { 'style': 'font-weight:600;' }, rule.name || '-'),
-					E('div', { 'class': 'pc-mac' }, rule.mac || '')
-				]));
-
-				// Schedule: each schedule on its own line
-				var schedCell = E('td', {});
-				formatScheduleLines(rule.schedules).forEach(function(line) {
-					schedCell.appendChild(E('span', { 'class': 'pc-sched-line' }, line));
-				});
-				row.appendChild(schedCell);
-
-				row.appendChild(E('td', {}, [statusBadge(rule.status, rule.override_remaining)]));
-
-				var enableCell = E('td', { 'style': 'text-align:center;' });
-				enableCell.appendChild(E('input', {
-					'type': 'checkbox', 'class': 'pc-checkbox',
-					'checked': rule.enabled ? '' : null,
-					'change': (function(r) {
-						return function(ev) {
-							callToggleRule(r.section, ev.target.checked ? 1 : 0).then(function() { window.location.reload(); });
-						};
-					})(rule)
-				}));
-				row.appendChild(enableCell);
-
-				var overrideCell = E('td', {});
-				var oc = E('div', { 'class': 'pc-override-cell' });
-				if (rule.enabled && rule.status === 'active') {
-					oc.appendChild(E('select', {
-						'class': 'pc-select',
-						'change': (function(r) {
-							return function(ev) {
-								var m = parseInt(ev.target.value);
-								if (m > 0) callSetOverride(r.section, m).then(function() { window.location.reload(); });
-							};
-						})(rule)
-					}, [
-						E('option', { 'value': '0' }, 'Pause...'),
-						E('option', { 'value': '30' }, '30 min'),
-						E('option', { 'value': '60' }, '1 hour'),
-						E('option', { 'value': '120' }, '2 hours')
-					]));
-				} else if (rule.status === 'override') {
-					oc.appendChild(E('span', { 'class': 'pc-override-info' }, 'Paused ' + formatDuration(rule.override_remaining)));
-					oc.appendChild(E('button', {
-						'class': 'pc-btn pc-btn-warn', 'style': 'padding:2px 8px;font-size:11px;',
-						'click': (function(r) {
-							return function() { callCancelOverride(r.section).then(function() { window.location.reload(); }); };
-						})(rule)
-					}, 'Resume'));
-				} else {
-					oc.appendChild(E('span', { 'style': 'opacity:0.3;font-size:12px;' }, '—'));
-				}
-				overrideCell.appendChild(oc);
-				row.appendChild(overrideCell);
-
-				var actions = E('td', {});
-				var ar = E('div', { 'class': 'pc-actions' });
-				ar.appendChild(E('button', {
-					'class': 'pc-btn pc-btn-primary',
-					'click': (function(r) { return function() { openEditModal(r); }; })(rule)
-				}, 'Edit'));
-				ar.appendChild(E('button', {
-					'class': 'pc-btn pc-btn-danger',
-					'click': (function(r) {
-						return function() {
-							if (confirm('Delete rule "' + (r.name || r.mac) + '"?'))
-								callDeleteRule(r.section).then(function() { window.location.reload(); });
-						};
-					})(rule)
-				}, 'Delete'));
-				actions.appendChild(ar);
-				row.appendChild(actions);
-				table.appendChild(row);
-			});
-
-			viewEl.appendChild(table);
-		}
-
-		// Auto-refresh
-		poll.add(function() {
-			callGetStatus().then(function(ns) {
-				var cells = document.querySelectorAll('.pc-table td:nth-child(3)');
-				(ns.rules || []).forEach(function(r, i) {
-					if (cells[i]) { cells[i].innerHTML = ''; cells[i].appendChild(statusBadge(r.status, r.override_remaining)); }
-				});
-			});
-		}, 30);
+		poll.add(function() { refreshView(); }, 30);
 
 		return viewEl;
 	},
@@ -452,24 +531,22 @@ function openAddModal() {
 			E('span', { 'class': 'pc-form-label' }, 'Device Name'),
 			E('input', { 'type': 'text', 'name': 'rule_name', 'placeholder': 'e.g. Kids iPad', 'class': 'pc-form-input' })
 		]));
-
 		var devRow = E('div', { 'class': 'pc-form-row' });
 		devRow.appendChild(E('span', { 'class': 'pc-form-label' }, 'Device'));
-		var deviceDiv = E('div', { 'class': 'pc-device-row' });
-		var macSelect = E('select', { 'name': 'rule_mac', 'class': 'pc-form-input pc-form-input-inline' });
-		macSelect.appendChild(E('option', { 'value': '' }, '-- Select a device --'));
+		var dd = E('div', { 'class': 'pc-device-row' });
+		var sel = E('select', { 'name': 'rule_mac', 'class': 'pc-form-input pc-form-input-inline' });
+		sel.appendChild(E('option', { 'value': '' }, '-- Select a device --'));
 		_cachedDevices.forEach(function(dev) {
-			var label = dev.mac;
-			if (dev.hostname && dev.hostname !== 'unknown' && dev.hostname !== '') label = dev.hostname + ' (' + dev.mac + ')';
-			if (dev.ip) label += ' - ' + dev.ip;
-			macSelect.appendChild(E('option', { 'value': dev.mac }, label));
+			var lbl = dev.mac;
+			if (dev.hostname && dev.hostname !== 'unknown' && dev.hostname !== '') lbl = dev.hostname + ' (' + dev.mac + ')';
+			if (dev.ip) lbl += ' - ' + dev.ip;
+			sel.appendChild(E('option', { 'value': dev.mac }, lbl));
 		});
-		deviceDiv.appendChild(macSelect);
-		deviceDiv.appendChild(E('span', { 'style': 'opacity:0.4;font-size:12px;' }, 'or'));
-		deviceDiv.appendChild(E('input', { 'type': 'text', 'name': 'rule_mac_manual', 'placeholder': 'AA:BB:CC:DD:EE:FF', 'class': 'pc-form-input pc-form-input-inline', 'style': 'width:160px;' }));
-		devRow.appendChild(deviceDiv);
+		dd.appendChild(sel);
+		dd.appendChild(E('span', { 'style': 'opacity:0.4;font-size:12px;' }, 'or'));
+		dd.appendChild(E('input', { 'type': 'text', 'name': 'rule_mac_manual', 'placeholder': 'AA:BB:CC:DD:EE:FF', 'class': 'pc-form-input pc-form-input-inline', 'style': 'width:160px;' }));
+		devRow.appendChild(dd);
 		body.appendChild(devRow);
-
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
 			E('span', { 'class': 'pc-form-label' }, 'Block Schedule'),
 			renderScheduleEditor('add', null)
@@ -481,13 +558,17 @@ function openAddModal() {
 			'click': function() {
 				var name = body.querySelector('[name="rule_name"]').value.trim();
 				var mac = body.querySelector('[name="rule_mac"]').value;
-				var macManual = body.querySelector('[name="rule_mac_manual"]').value.trim();
-				if (macManual) mac = macManual;
+				var mm = body.querySelector('[name="rule_mac_manual"]').value.trim();
+				if (mm) mac = mm;
 				if (!name) { ui.addNotification(null, E('p', 'Please enter a device name.'), 'warning'); return; }
 				if (!mac) { ui.addNotification(null, E('p', 'Please select or enter a MAC address.'), 'warning'); return; }
-				var schedules = collectSchedules(body, 'add');
-				if (!schedules) { ui.addNotification(null, E('p', 'Please configure at least one schedule.'), 'warning'); return; }
-				callAddRule(name, mac, schedules, 1).then(function() { window.location.reload(); });
+				var scheds = collectSchedules(body, 'add');
+				if (!scheds) { ui.addNotification(null, E('p', 'Please configure at least one schedule.'), 'warning'); return; }
+				callAddRule(name, mac, scheds, 1).then(function() {
+					closeModal();
+					showToast('"' + name + '" added');
+					refreshView();
+				});
 			}
 		}, 'Add Rule'));
 	});
@@ -499,12 +580,10 @@ function openEditModal(rule) {
 			E('span', { 'class': 'pc-form-label' }, 'Device Name'),
 			E('input', { 'type': 'text', 'name': 'edit_name', 'value': rule.name || '', 'class': 'pc-form-input' })
 		]));
-
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
 			E('span', { 'class': 'pc-form-label' }, 'MAC Address'),
 			E('input', { 'type': 'text', 'value': rule.mac || '', 'class': 'pc-form-input', 'disabled': '', 'style': 'opacity:0.5;' })
 		]));
-
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
 			E('span', { 'class': 'pc-form-label' }, 'Block Schedule'),
 			renderScheduleEditor('edit', parseSchedules(rule.schedules))
@@ -516,9 +595,13 @@ function openEditModal(rule) {
 			'click': function() {
 				var name = body.querySelector('[name="edit_name"]').value.trim();
 				if (!name) { ui.addNotification(null, E('p', 'Please enter a device name.'), 'warning'); return; }
-				var schedules = collectSchedules(body, 'edit');
-				if (!schedules) { ui.addNotification(null, E('p', 'Please configure at least one schedule.'), 'warning'); return; }
-				callUpdateRule(rule.section, name, schedules, rule.enabled ? 1 : 0).then(function() { window.location.reload(); });
+				var scheds = collectSchedules(body, 'edit');
+				if (!scheds) { ui.addNotification(null, E('p', 'Please configure at least one schedule.'), 'warning'); return; }
+				callUpdateRule(rule.section, name, scheds, rule.enabled ? 1 : 0).then(function() {
+					closeModal();
+					showToast('"' + name + '" updated');
+					refreshView();
+				});
 			}
 		}, 'Save Changes'));
 	});

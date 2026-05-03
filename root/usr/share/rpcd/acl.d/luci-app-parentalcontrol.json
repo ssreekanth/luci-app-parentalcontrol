@@ -9,7 +9,7 @@
 		},
 		"write": {
 			"ubus": {
-				"parentalcontrol": ["toggle_global", "toggle_rule", "set_override", "cancel_override", "add_rule", "update_rule", "delete_rule"]
+				"parentalcontrol": ["toggle_global", "toggle_rule", "set_override", "cancel_override", "add_rule", "update_rule", "move_rule", "delete_rule"]
 			},
 			"uci": ["parentalcontrol"]
 		}
