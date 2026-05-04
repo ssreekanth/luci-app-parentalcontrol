@@ -692,7 +692,7 @@ return view.extend({
 		renderTable(_tableContainer, rules, globalEnabled);
 		viewEl.appendChild(_tableContainer);
 
-		poll.add(function() { refreshView(); }, 30);
+		poll.add(function() { refreshView(); });
 
 		return viewEl;
 	},
