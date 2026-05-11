@@ -41,7 +41,7 @@ Time-based parental control for OpenWrt with per-device scheduling, temporary ov
 │                                                         │
 │  /etc/config/parentalcontrol     — persistent config    │
 │  /usr/libexec/parentalcontrol.sh — nftables generator   │
-│  /etc/nftables.d/30-parentalcontrol.nft — generated     │
+│  /tmp/parentalcontrol.nft — generated     │
 └────────────────────────┬────────────────────────────────┘
                          │ nft -f
 ┌────────────────────────▼────────────────────────────────┐
@@ -104,7 +104,7 @@ config rule
 ### Blocking
 
 The backend script (`parentalcontrol.sh apply`) reads the UCI config and generates an nftables include
-file at `/etc/nftables.d/30-parentalcontrol.nft`. Each enabled rule becomes one or more nftables rules
+file at `/tmp/parentalcontrol.nft`. Each enabled rule becomes one or more nftables rules
 that match on:
 
 - `ether saddr` — the device's MAC address
@@ -216,7 +216,7 @@ rm -f /usr/libexec/parentalcontrol.sh
 rm -f /usr/libexec/rpcd/parentalcontrol
 rm -f /etc/init.d/parentalcontrol
 rm -f /etc/config/parentalcontrol
-rm -f /etc/nftables.d/30-parentalcontrol.nft
+rm -f /tmp/parentalcontrol.nft
 rm -f /usr/share/luci/menu.d/luci-app-parentalcontrol.json
 rm -f /usr/share/rpcd/acl.d/luci-app-parentalcontrol.json
 rm -rf /www/luci-static/resources/view/parentalcontrol
