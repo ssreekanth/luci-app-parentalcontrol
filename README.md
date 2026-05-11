@@ -194,7 +194,7 @@ Since OpenWrt 25.x uses APK v3 (ADB binary format) which cannot be easily built 
 install by copying files directly:
 
 ```bash
-# From your development machine:
+# From your development machine (first-time install):
 cd luci-app-parentalcontrol
 scp -r root/* root@<router-ip>:/
 scp -r htdocs/luci-static/resources/view/parentalcontrol root@<router-ip>:/www/luci-static/resources/view/
@@ -206,6 +206,23 @@ sh /etc/uci-defaults/luci-app-parentalcontrol
 ```
 
 The menu entry appears at **Services > Parental Control** in LuCI.
+
+## Updating
+
+**IMPORTANT:** Do NOT use `scp -r root/* root@<router-ip>:/` for updates — it overwrites
+`/etc/config/parentalcontrol` and erases your rules. Copy only the changed files:
+
+```bash
+# Update scripts and UI (does NOT touch config):
+scp root/usr/libexec/parentalcontrol.sh root@<router-ip>:/usr/libexec/parentalcontrol.sh
+scp root/usr/libexec/rpcd/parentalcontrol root@<router-ip>:/usr/libexec/rpcd/parentalcontrol
+scp htdocs/luci-static/resources/view/parentalcontrol/settings.js root@<router-ip>:/www/luci-static/resources/view/parentalcontrol/settings.js
+
+# On the router:
+chmod +x /usr/libexec/parentalcontrol.sh /usr/libexec/rpcd/parentalcontrol
+/etc/init.d/rpcd restart
+/etc/init.d/parentalcontrol restart
+```
 
 ## Uninstall
 
