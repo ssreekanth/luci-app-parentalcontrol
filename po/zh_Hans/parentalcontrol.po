@@ -1,0 +1,212 @@
+# Parental Control LuCI App - Simplified Chinese Translation
+# Copyright (C) 2024
+# SPDX-License-Identifier: MIT
+#
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Parental Control"
+msgstr "家长控制"
+
+msgid "Parental control disabled"
+msgstr "家长控制已禁用"
+
+msgid "Parental control enabled"
+msgstr "家长控制已启用"
+
+msgid "Disable"
+msgstr "禁用"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Active"
+msgstr "已激活"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+msgid "No parental control rules configured."
+msgstr "暂无家长控制规则。"
+
+msgid "Controlled Devices"
+msgstr "受控设备"
+
+msgid "+ Add Rule"
+msgstr "+ 添加规则"
+
+msgid "Device"
+msgstr "设备"
+
+msgid "Schedule"
+msgstr "计划"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Blocked"
+msgstr "已拦截"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Override"
+msgstr "临时放行"
+
+msgid "Paused"
+msgstr "已暂停"
+
+msgid "Scheduled"
+msgstr "已计划"
+
+msgid "Inactive"
+msgstr "未激活"
+
+msgid "Mon"
+msgstr "周一"
+
+msgid "Tue"
+msgstr "周二"
+
+msgid "Wed"
+msgstr "周三"
+
+msgid "Thu"
+msgstr "周四"
+
+msgid "Fri"
+msgstr "周五"
+
+msgid "Sat"
+msgstr "周六"
+
+msgid "Sun"
+msgstr "周日"
+
+msgid "Every day"
+msgstr "每天"
+
+msgid "Mon-Fri"
+msgstr "周一至周五"
+
+msgid "Sat-Sun"
+msgstr "周六至周日"
+
+msgid "From"
+msgstr "从"
+
+msgid "To"
+msgstr "至"
+
+msgid "+ Add Schedule"
+msgstr "+ 添加时段"
+
+msgid "Remove"
+msgstr "删除"
+
+msgid "Move up"
+msgstr "上移"
+
+msgid "Move down"
+msgstr "下移"
+
+msgid "Drag to reorder"
+msgstr "拖拽排序"
+
+msgid "Moved"
+msgstr "已移动"
+
+msgid "up"
+msgstr "上移"
+
+msgid "down"
+msgstr "下移"
+
+msgid "pkts"
+msgstr "包"
+
+msgid "paused for"
+msgstr "暂停"
+
+msgid "Pause..."
+msgstr "暂停..."
+
+msgid "30 min"
+msgstr "30 分钟"
+
+msgid "1 hour"
+msgstr "1 小时"
+
+msgid "2 hours"
+msgstr "2 小时"
+
+msgid "blocking resumed"
+msgstr "已恢复拦截"
+
+msgid "Resume"
+msgstr "恢复拦截"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Delete rule"
+msgstr "删除规则"
+
+msgid "deleted"
+msgstr "已删除"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "enabled"
+msgstr "已启用"
+
+msgid "disabled"
+msgstr "已禁用"
+
+msgid "Add New Rule"
+msgstr "添加新规则"
+
+msgid "Device Name"
+msgstr "设备名称"
+
+msgid "-- Select a device --"
+msgstr "-- 选择设备 --"
+
+msgid "or"
+msgstr "或"
+
+msgid "Block Schedule"
+msgstr "拦截时段"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Please enter a device name."
+msgstr "请输入设备名称。"
+
+msgid "Please select or enter a MAC address."
+msgstr "请选择或输入 MAC 地址。"
+
+msgid "Please configure at least one schedule."
+msgstr "请至少配置一个时段。"
+
+msgid "added"
+msgstr "已添加"
+
+msgid "Add Rule"
+msgstr "添加规则"
+
+msgid "Edit Rule"
+msgstr "编辑规则"
+
+msgid "MAC Address"
+msgstr "MAC 地址"
+
+msgid "updated"
+msgstr "已更新"
+
+msgid "Save Changes"
+msgstr "保存修改"

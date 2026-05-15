@@ -17,7 +17,7 @@ var callMoveRule = rpc.declare({ object: 'parentalcontrol', method: 'move_rule',
 var callReorderRule = rpc.declare({ object: 'parentalcontrol', method: 'reorder_rule', params: ['section', 'position'] });
 
 var DAY_NAMES = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-var DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+var DAY_LABELS = function() { return [_('Mon'), _('Tue'), _('Wed'), _('Thu'), _('Fri'), _('Sat'), _('Sun')]; };
 
 var CSS = '\
 .pc-header { display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid rgba(255,255,255,0.08); border-radius:6px; margin-bottom:20px; }\
@@ -187,11 +187,11 @@ function formatPackets(packets) {
 
 function compactDays(dayList) {
 	var order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-	var labels = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+	var labels = { mon: _('Mon'), tue: _('Tue'), wed: _('Wed'), thu: _('Thu'), fri: _('Fri'), sat: _('Sat'), sun: _('Sun') };
 	var sorted = dayList.slice().sort(function(a, b) { return order.indexOf(a) - order.indexOf(b); });
-	if (sorted.length === 7) return 'Every day';
-	if (sorted.length === 5 && sorted.join(',') === 'mon,tue,wed,thu,fri') return 'Mon-Fri';
-	if (sorted.length === 2 && sorted.join(',') === 'sat,sun') return 'Sat-Sun';
+	if (sorted.length === 7) return _('Every day');
+	if (sorted.length === 5 && sorted.join(',') === 'mon,tue,wed,thu,fri') return _('Mon-Fri');
+	if (sorted.length === 2 && sorted.join(',') === 'sat,sun') return _('Sat-Sun');
 	var ranges = [], i = 0;
 	while (i < sorted.length) {
 		var start = i;
@@ -215,10 +215,10 @@ function formatScheduleLines(scheduleStr) {
 function statusBadge(status, overrideRemaining) {
 	var cls, text;
 	switch (status) {
-		case 'active': cls = 'pc-badge pc-badge-blocked'; text = 'Blocked'; break;
-		case 'override': cls = 'pc-badge pc-badge-override'; text = 'Paused (' + formatDuration(overrideRemaining) + ')'; break;
-		case 'scheduled': cls = 'pc-badge pc-badge-scheduled'; text = 'Scheduled'; break;
-		default: cls = 'pc-badge pc-badge-inactive'; text = 'Inactive';
+		case 'active': cls = 'pc-badge pc-badge-blocked'; text = _('Blocked'); break;
+		case 'override': cls = 'pc-badge pc-badge-override'; text = _('Paused') + ' (' + formatDuration(overrideRemaining) + ')'; break;
+		case 'scheduled': cls = 'pc-badge pc-badge-scheduled'; text = _('Scheduled'); break;
+		default: cls = 'pc-badge pc-badge-inactive'; text = _('Inactive');
 	}
 	return E('span', { 'class': cls }, text);
 }
@@ -238,12 +238,12 @@ function parseSchedules(scheduleStr) {
 function renderScheduleBlock(prefix, idx, sched, showRemove) {
 	var block = E('div', { 'class': 'pc-sched-block', 'data-sched-idx': idx });
 	var header = E('div', { 'class': 'pc-sched-block-header' });
-	header.appendChild(E('span', { 'class': 'pc-sched-block-title' }, 'Schedule ' + (idx + 1)));
+	header.appendChild(E('span', { 'class': 'pc-sched-block-title' }, _('Schedule') + ' ' + (idx + 1)));
 	if (showRemove) {
 		header.appendChild(E('button', {
 			'class': 'pc-sched-block-remove',
 			'click': function() { var c = block.parentNode; block.remove(); renumberBlocks(c, prefix); }
-		}, 'Remove'));
+		}, _('Remove')));
 	}
 	block.appendChild(header);
 
@@ -253,7 +253,7 @@ function renderScheduleBlock(prefix, idx, sched, showRemove) {
 		var btn = E('span', {
 			'class': 'pc-day-btn' + (active ? ' active' : ''), 'data-day': d,
 			'click': function() { btn.classList.toggle('active'); hi.value = btn.classList.contains('active') ? '1' : ''; }
-		}, DAY_LABELS[i]);
+		}, DAY_LABELS()[i]);
 		var hi = E('input', { 'type': 'hidden', 'name': prefix + '_day_' + idx + '_' + d, 'value': active ? '1' : '' });
 		dayRow.appendChild(btn);
 		dayRow.appendChild(hi);
@@ -261,9 +261,9 @@ function renderScheduleBlock(prefix, idx, sched, showRemove) {
 	block.appendChild(dayRow);
 
 	block.appendChild(E('div', { 'class': 'pc-time-row' }, [
-		E('span', { 'class': 'pc-time-label' }, 'From'),
+		E('span', { 'class': 'pc-time-label' }, _('From')),
 		E('input', { 'type': 'time', 'name': prefix + '_start_' + idx, 'value': sched.start, 'class': 'pc-form-input pc-form-input-inline pc-time-input' }),
-		E('span', { 'class': 'pc-time-label' }, 'to'),
+		E('span', { 'class': 'pc-time-label' }, _('To')),
 		E('input', { 'type': 'time', 'name': prefix + '_end_' + idx, 'value': sched.end, 'class': 'pc-form-input pc-form-input-inline pc-time-input' })
 	]));
 	return block;
@@ -274,7 +274,7 @@ function renumberBlocks(container, prefix) {
 	blocks.forEach(function(block, newIdx) {
 		block.setAttribute('data-sched-idx', newIdx);
 		var title = block.querySelector('.pc-sched-block-title');
-		if (title) title.textContent = 'Schedule ' + (newIdx + 1);
+		if (title) title.textContent = _('Schedule') + ' ' + (newIdx + 1);
 		DAY_NAMES.forEach(function(d) {
 			var inp = block.querySelector('[name*="_day_"][name$="_' + d + '"]');
 			if (inp) inp.name = prefix + '_day_' + newIdx + '_' + d;
@@ -305,7 +305,7 @@ function renderScheduleEditor(prefix, schedules) {
 			bd.appendChild(renderScheduleBlock(prefix, n, { days: ['sat', 'sun'], start: '22:00', end: '08:00' }, true));
 			renumberBlocks(bd, prefix);
 		}
-	}, '+ Add Schedule'));
+	}, _('+ Add Schedule')));
 	return wrapper;
 }
 
@@ -383,39 +383,39 @@ function refreshView() {
 
 function renderGlobal(container, globalEnabled) {
 	container.innerHTML = '';
-	container.appendChild(E('span', { 'class': 'pc-header-label' }, 'Parental Control:'));
+	container.appendChild(E('span', { 'class': 'pc-header-label' }, _('Parental Control') + ':'));
 	container.appendChild(E('button', {
 		'class': globalEnabled ? 'pc-btn pc-btn-danger' : 'pc-btn pc-btn-success',
 		'click': function() {
 			callToggleGlobal(globalEnabled ? 0 : 1).then(function() {
-				showToast(globalEnabled ? 'Parental control disabled' : 'Parental control enabled');
+				showToast(globalEnabled ? _('Parental control disabled') : _('Parental control enabled'));
 				refreshView();
 			});
 		}
-	}, globalEnabled ? 'Disable' : 'Enable'));
+	}, globalEnabled ? _('Disable') : _('Enable')));
 	container.appendChild(E('span', {
 		'class': 'pc-header-status',
 		'style': 'color:' + (globalEnabled ? '#66bb6a' : '#888')
-	}, globalEnabled ? 'Active' : 'Disabled'));
+	}, globalEnabled ? _('Active') : _('Disabled')));
 }
 
 function renderTable(container, rules, globalEnabled) {
 	container.innerHTML = '';
 
 	if (rules.length === 0) {
-		container.appendChild(E('p', { 'style': 'opacity:0.5;padding:8px 0;' }, 'No parental control rules configured.'));
+		container.appendChild(E('p', { 'style': 'opacity:0.5;padding:8px 0;' }, _('No parental control rules configured.')));
 		return;
 	}
 
 	var table = E('div', { 'class': 'table cbi-section-table pc-table' });
 	table.appendChild(E('div', { 'class': 'tr table-titles' }, [
 		E('div', { 'class': 'th', 'style': 'width:30px;' }, ''),
-		E('div', { 'class': 'th' }, 'Device'),
-		E('div', { 'class': 'th' }, 'Schedule'),
-		E('div', { 'class': 'th', 'style': 'width:120px;' }, 'Status'),
-		E('div', { 'class': 'th', 'style': 'width:100px;' }, 'Blocked'),
-		E('div', { 'class': 'th', 'style': 'text-align:center;width:60px;' }, 'Enabled'),
-		E('div', { 'class': 'th', 'style': 'width:200px;' }, 'Override'),
+		E('div', { 'class': 'th' }, _('Device')),
+		E('div', { 'class': 'th' }, _('Schedule')),
+		E('div', { 'class': 'th', 'style': 'width:120px;' }, _('Status')),
+		E('div', { 'class': 'th', 'style': 'width:100px;' }, _('Blocked')),
+		E('div', { 'class': 'th', 'style': 'text-align:center;width:60px;' }, _('Enabled')),
+		E('div', { 'class': 'th', 'style': 'width:200px;' }, _('Override')),
 		E('div', { 'class': 'th cbi-section-actions' }, '')
 	]));
 
@@ -461,7 +461,7 @@ function renderTable(container, rules, globalEnabled) {
 			if (fromIdx === toIdx || fromIdx < 0) return;
 			var fromRule = rules[fromIdx];
 			callReorderRule(fromRule.section, toIdx).then(function() {
-				showToast('Moved "' + fromRule.name + '"');
+				showToast(_('Moved') + ' "' + fromRule.name + '"');
 				refreshView();
 			});
 		});
@@ -470,16 +470,16 @@ function renderTable(container, rules, globalEnabled) {
 		var reorderCell = E('div', { 'class': 'td pc-reorder-td', 'style': 'padding:4px;flex:0 0 30px;' });
 		var cellContent = E('div', { 'class': 'pc-reorder-cell' });
 		cellContent.appendChild(E('button', {
-			'class': 'pc-btn-arrow', 'title': 'Move up',
+			'class': 'pc-btn-arrow', 'title': _('Move up'),
 			'disabled': ruleIdx === 0 ? '' : null,
 			'click': function() {
 				callMoveRule(rule.section, 'up').then(function() {
-					showToast('Moved "' + rule.name + '" up');
+					showToast(_('Moved') + ' "' + rule.name + '" ' + _('up'));
 					refreshView();
 				});
 			}
 		}, '▲'));
-		var dragHandle = E('span', { 'class': 'pc-drag-handle', 'title': 'Drag to reorder' }, '⠿');
+		var dragHandle = E('span', { 'class': 'pc-drag-handle', 'title': _('Drag to reorder') }, '⠿');
 
 		// Touch drag-and-drop for mobile
 		(function(handle, srcIdx, srcRule) {
@@ -524,7 +524,7 @@ function renderTable(container, rules, globalEnabled) {
 
 				if (touchTarget !== null && touchTarget !== srcIdx) {
 					callReorderRule(srcRule.section, touchTarget).then(function() {
-						showToast('Moved "' + srcRule.name + '"');
+						showToast(_('Moved') + ' "' + srcRule.name + '"');
 						refreshView();
 					});
 				}
@@ -534,11 +534,11 @@ function renderTable(container, rules, globalEnabled) {
 
 		cellContent.appendChild(dragHandle);
 		cellContent.appendChild(E('button', {
-			'class': 'pc-btn-arrow', 'title': 'Move down',
+			'class': 'pc-btn-arrow', 'title': _('Move down'),
 			'disabled': ruleIdx === rules.length - 1 ? '' : null,
 			'click': function() {
 				callMoveRule(rule.section, 'down').then(function() {
-					showToast('Moved "' + rule.name + '" down');
+					showToast(_('Moved') + ' "' + rule.name + '" ' + _('down'));
 					refreshView();
 				});
 			}
@@ -568,7 +568,7 @@ function renderTable(container, rules, globalEnabled) {
 		var statsCell = E('div', { 'class': 'td' + (packets === 0 && bytes === 0 ? ' pc-stats-empty' : ''), 'data-title': 'Blocked' });
 		if (packets > 0 || bytes > 0) {
 			statsCell.appendChild(E('div', { 'class': 'pc-stats' }, [
-				E('span', { 'class': 'pc-stats-packets' }, formatPackets(packets) + ' pkts'),
+				E('span', { 'class': 'pc-stats-packets' }, formatPackets(packets) + ' ' + _('pkts')),
 				E('br'),
 				E('span', { 'class': 'pc-stats-bytes' }, formatBytes(bytes))
 			]));
@@ -586,7 +586,7 @@ function renderTable(container, rules, globalEnabled) {
 				return function(ev) {
 					var enabling = ev.target.checked;
 					callToggleRule(r.section, enabling ? 1 : 0).then(function() {
-						showToast('"' + r.name + '" ' + (enabling ? 'enabled' : 'disabled'));
+						showToast('"' + r.name + '" ' + (enabling ? _('enabled') : _('disabled')));
 						refreshView();
 					});
 				};
@@ -605,31 +605,31 @@ function renderTable(container, rules, globalEnabled) {
 						var m = parseInt(ev.target.value);
 						if (m > 0) {
 							callSetOverride(r.section, m).then(function() {
-								showToast('"' + r.name + '" paused for ' + (m >= 60 ? (m/60) + 'h' : m + 'm'));
+								showToast('"' + r.name + '" ' + _('paused for') + ' ' + (m >= 60 ? (m/60) + 'h' : m + 'm'));
 								refreshView();
 							});
 						}
 					};
 				})(rule)
 			}, [
-				E('option', { 'value': '0' }, 'Pause...'),
-				E('option', { 'value': '30' }, '30 min'),
-				E('option', { 'value': '60' }, '1 hour'),
-				E('option', { 'value': '120' }, '2 hours')
+				E('option', { 'value': '0' }, _('Pause...')),
+				E('option', { 'value': '30' }, _('30 min')),
+				E('option', { 'value': '60' }, _('1 hour')),
+				E('option', { 'value': '120' }, _('2 hours'))
 			]));
 		} else if (rule.status === 'override') {
-			oc.appendChild(E('span', { 'class': 'pc-override-info' }, 'Paused ' + formatDuration(rule.override_remaining)));
+			oc.appendChild(E('span', { 'class': 'pc-override-info' }, _('Paused') + ' ' + formatDuration(rule.override_remaining)));
 			oc.appendChild(E('button', {
 				'class': 'pc-btn pc-btn-warn',
 				'click': (function(r) {
 					return function() {
 						callCancelOverride(r.section).then(function() {
-							showToast('"' + r.name + '" blocking resumed');
+							showToast('"' + r.name + '" ' + _('blocking resumed'));
 							refreshView();
 						});
 					};
 				})(rule)
-			}, 'Resume'));
+			}, _('Resume')));
 		} else {
 			oc.appendChild(E('span', { 'style': 'opacity:0.3;font-size:12px;' }, '—'));
 		}
@@ -642,20 +642,20 @@ function renderTable(container, rules, globalEnabled) {
 		ar.appendChild(E('button', {
 			'class': 'pc-btn pc-btn-primary',
 			'click': (function(r) { return function() { openEditModal(r); }; })(rule)
-		}, 'Edit'));
+		}, _('Edit')));
 		ar.appendChild(E('button', {
 			'class': 'pc-btn pc-btn-danger',
 			'click': (function(r) {
 				return function() {
-					if (confirm('Delete rule "' + (r.name || r.mac) + '"?')) {
+					if (confirm(_('Delete rule') + ' "' + (r.name || r.mac) + '"?')) {
 						callDeleteRule(r.section).then(function() {
-							showToast('"' + r.name + '" deleted');
+							showToast('"' + r.name + '" ' + _('deleted'));
 							refreshView();
 						});
 					}
 				};
 			})(rule)
-		}, 'Delete'));
+		}, _('Delete')));
 		actions.appendChild(ar);
 		row.appendChild(actions);
 		table.appendChild(row);
@@ -684,18 +684,18 @@ return view.extend({
 
 		var viewEl = E('div', { 'class': 'cbi-map' });
 		viewEl.appendChild(E('style', {}, CSS));
-		viewEl.appendChild(E('h2', {}, 'Parental Control'));
+		viewEl.appendChild(E('h2', {}, _('Parental Control')));
 
 		_globalContainer = E('div', { 'class': 'pc-header' });
 		renderGlobal(_globalContainer, globalEnabled);
 		viewEl.appendChild(_globalContainer);
 
 		var titleRow = E('div', { 'style': 'display:flex; align-items:center; justify-content:space-between; margin:20px 0 10px;' });
-		titleRow.appendChild(E('div', { 'class': 'pc-section-title', 'style': 'margin:0;' }, 'Controlled Devices'));
+		titleRow.appendChild(E('div', { 'class': 'pc-section-title', 'style': 'margin:0;' }, _('Controlled Devices')));
 		titleRow.appendChild(E('button', {
 			'class': 'pc-btn pc-btn-success',
 			'click': function() { openAddModal(); }
-		}, '+ Add Rule'));
+		}, _('+ Add Rule')));
 		viewEl.appendChild(titleRow);
 
 		_tableContainer = E('div');
@@ -713,15 +713,15 @@ return view.extend({
 });
 
 function openAddModal() {
-	showModal('Add New Rule', function(body) {
+	showModal(_('Add New Rule'), function(body) {
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
-			E('span', { 'class': 'pc-form-label' }, 'Device Name'),
+			E('span', { 'class': 'pc-form-label' }, _('Device Name')),
 			E('input', { 'type': 'text', 'name': 'rule_name', 'placeholder': 'e.g. Kids iPad', 'class': 'pc-form-input',
 				'input': function() { var err = body.querySelector('.pc-modal-error'); if (err) err.remove(); }
 			})
 		]));
 		var devRow = E('div', { 'class': 'pc-form-row' });
-		devRow.appendChild(E('span', { 'class': 'pc-form-label' }, 'Device'));
+		devRow.appendChild(E('span', { 'class': 'pc-form-label' }, _('Device')));
 		var dd = E('div', { 'class': 'pc-device-row' });
 		var sel = E('select', { 'name': 'rule_mac', 'class': 'pc-form-input pc-form-input-inline',
 			'change': function() {
@@ -734,7 +734,7 @@ function openAddModal() {
 				if (err) err.remove();
 			}
 		});
-		sel.appendChild(E('option', { 'value': '' }, '-- Select a device --'));
+		sel.appendChild(E('option', { 'value': '' }, _('-- Select a device --')));
 		_cachedDevices.forEach(function(dev) {
 			var lbl = dev.mac;
 			var hostname = '';
@@ -747,16 +747,16 @@ function openAddModal() {
 			sel.appendChild(opt);
 		});
 		dd.appendChild(sel);
-		dd.appendChild(E('span', { 'style': 'opacity:0.4;font-size:12px;' }, 'or'));
+		dd.appendChild(E('span', { 'style': 'opacity:0.4;font-size:12px;' }, _('or')));
 		dd.appendChild(E('input', { 'type': 'text', 'name': 'rule_mac_manual', 'placeholder': 'AA:BB:CC:DD:EE:FF', 'class': 'pc-form-input pc-form-input-inline', 'style': 'width:160px;' }));
 		devRow.appendChild(dd);
 		body.appendChild(devRow);
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
-			E('span', { 'class': 'pc-form-label' }, 'Block Schedule'),
+			E('span', { 'class': 'pc-form-label' }, _('Block Schedule')),
 			renderScheduleEditor('add', null)
 		]));
 	}, function(footer, body, closeModal) {
-		footer.appendChild(E('button', { 'class': 'pc-btn', 'click': closeModal }, 'Cancel'));
+		footer.appendChild(E('button', { 'class': 'pc-btn', 'click': closeModal }, _('Cancel')));
 		footer.appendChild(E('button', {
 			'class': 'pc-btn pc-btn-success pc-btn-lg',
 			'click': function() {
@@ -764,51 +764,51 @@ function openAddModal() {
 				var mac = body.querySelector('[name="rule_mac"]').value;
 				var mm = body.querySelector('[name="rule_mac_manual"]').value.trim();
 				if (mm) mac = mm;
-				if (!name) { showModalError(body, 'Please enter a device name.'); return; }
-				if (!mac) { showModalError(body, 'Please select or enter a MAC address.'); return; }
+				if (!name) { showModalError(body, _('Please enter a device name.')); return; }
+				if (!mac) { showModalError(body, _('Please select or enter a MAC address.')); return; }
 				var scheds = collectSchedules(body, 'add');
-				if (!scheds) { showModalError(body, 'Please configure at least one schedule.'); return; }
+				if (!scheds) { showModalError(body, _('Please configure at least one schedule.')); return; }
 				callAddRule(name, mac, scheds, 1).then(function() {
 					closeModal();
-					showToast('"' + name + '" added');
+					showToast('"' + name + '" ' + _('added'));
 					refreshView();
 				});
 			}
-		}, 'Add Rule'));
+		}, _('Add Rule')));
 	});
 }
 
 function openEditModal(rule) {
-	showModal('Edit Rule — ' + (rule.name || rule.mac), function(body) {
+	showModal(_('Edit Rule') + ' — ' + (rule.name || rule.mac), function(body) {
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
-			E('span', { 'class': 'pc-form-label' }, 'Device Name'),
+			E('span', { 'class': 'pc-form-label' }, _('Device Name')),
 			E('input', { 'type': 'text', 'name': 'edit_name', 'value': rule.name || '', 'class': 'pc-form-input',
 				'input': function() { var err = body.querySelector('.pc-modal-error'); if (err) err.remove(); }
 			})
 		]));
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
-			E('span', { 'class': 'pc-form-label' }, 'MAC Address'),
+			E('span', { 'class': 'pc-form-label' }, _('MAC Address')),
 			E('input', { 'type': 'text', 'value': rule.mac || '', 'class': 'pc-form-input', 'disabled': '', 'style': 'opacity:0.5;' })
 		]));
 		body.appendChild(E('div', { 'class': 'pc-form-row' }, [
-			E('span', { 'class': 'pc-form-label' }, 'Block Schedule'),
+			E('span', { 'class': 'pc-form-label' }, _('Block Schedule')),
 			renderScheduleEditor('edit', parseSchedules(rule.schedules))
 		]));
 	}, function(footer, body, closeModal) {
-		footer.appendChild(E('button', { 'class': 'pc-btn', 'click': closeModal }, 'Cancel'));
+		footer.appendChild(E('button', { 'class': 'pc-btn', 'click': closeModal }, _('Cancel')));
 		footer.appendChild(E('button', {
 			'class': 'pc-btn pc-btn-success pc-btn-lg',
 			'click': function() {
 				var name = body.querySelector('[name="edit_name"]').value.trim();
-				if (!name) { showModalError(body, 'Please enter a device name.'); return; }
+				if (!name) { showModalError(body, _('Please enter a device name.')); return; }
 				var scheds = collectSchedules(body, 'edit');
-				if (!scheds) { showModalError(body, 'Please configure at least one schedule.'); return; }
+				if (!scheds) { showModalError(body, _('Please configure at least one schedule.')); return; }
 				callUpdateRule(rule.section, name, scheds, rule.enabled ? 1 : 0).then(function() {
 					closeModal();
-					showToast('"' + name + '" updated');
+					showToast('"' + name + '" ' + _('updated'));
 					refreshView();
 				});
 			}
-		}, 'Save Changes'));
+		}, _('Save Changes')));
 	});
 }
